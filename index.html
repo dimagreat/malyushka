@@ -15,56 +15,59 @@
   :root {
     --bar: #ffd84d;
     --bar-dark: #f2b705;
-    --btn: #ffffff;
+    --on: #6bd36b;
+    --on-dark: #2e9e2e;
     --shadow: 0 3px 0 rgba(0,0,0,.18);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; touch-action: none; overscroll-behavior: none; }
   #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
 
-  .bar { background: var(--bar); display: flex; align-items: center; gap: 10px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; flex: none; }
-  .bar::-webkit-scrollbar { display: none; }
-  .top { padding-top: max(8px, env(safe-area-inset-top)); border-bottom: 4px solid var(--bar-dark); }
-  .bottom { padding-bottom: max(8px, env(safe-area-inset-bottom)); border-top: 4px solid var(--bar-dark); flex-direction: column; align-items: stretch; gap: 8px; }
-  .row { display: flex; align-items: center; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px; }
-  .row::-webkit-scrollbar { display: none; }
+  .bar { background: var(--bar); flex: none; padding: 6px 10px; }
+  .top { display: flex; align-items: center; gap: 8px; padding-top: max(6px, env(safe-area-inset-top)); border-bottom: 4px solid var(--bar-dark); }
+  .bottom { display: flex; flex-direction: column; gap: 8px; padding-bottom: max(8px, env(safe-area-inset-bottom)); border-top: 4px solid var(--bar-dark); }
   .spacer { flex: 1; }
 
-  button { font: inherit; border: none; cursor: pointer; flex: none; }
-  .btn { width: 56px; height: 56px; border-radius: 16px; background: var(--btn); font-size: 30px; box-shadow: var(--shadow); display: grid; place-items: center; transition: transform .1s; }
+  button { font: inherit; border: none; cursor: pointer; padding: 0; color: inherit; }
+  .btn { flex: none; width: 50px; height: 50px; border-radius: 15px; background: #fff; font-size: 27px; box-shadow: var(--shadow); display: grid; place-items: center; transition: transform .1s; }
   .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
-  .btn.on { background: #6bd36b; outline: 4px solid #2e9e2e; }
-  .btn:disabled { opacity: .4; }
+  .btn:disabled { opacity: .35; }
   .btn.warn { animation: wiggle .4s infinite; background: #ff7a7a; }
   @keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
 
-  .color { width: 48px; height: 48px; border-radius: 50%; box-shadow: var(--shadow), inset 0 0 0 3px rgba(0,0,0,.08); transition: transform .12s; }
-  .color.on { transform: scale(1.22); outline: 4px solid #fff; box-shadow: 0 0 0 7px #333; }
+  /* tools: always fit the width, never scroll */
+  .tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
+  .tools .btn { width: 100%; height: 56px; font-size: 30px; }
+  .tools .btn.on { background: var(--on); box-shadow: 0 0 0 3px var(--on-dark), var(--shadow); }
+  .size-dot { display: block; border-radius: 50%; background: #333; }
 
-  .size { width: 52px; height: 52px; border-radius: 14px; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; }
-  .size i { display: block; border-radius: 50%; background: #333; }
-  .size.on { background: #6bd36b; outline: 4px solid #2e9e2e; }
-
-  .stamp { width: 52px; height: 52px; border-radius: 14px; background: #fff; font-size: 32px; box-shadow: var(--shadow); display: grid; place-items: center; }
-  .stamp.on { background: #6bd36b; outline: 4px solid #2e9e2e; }
+  /* palette: wraps into rows, never scrolls */
+  .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; justify-items: center; max-width: 620px; width: 100%; margin: 0 auto; }
+  .color { width: 40px; height: 40px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), var(--shadow); }
+  .color.on { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #333; }
+  .color.rainbow { background: conic-gradient(#e53935, #fdd835, #7cb342, #29b6f6, #7e57c2, #ec407a, #e53935); }
+  .sticker { width: 44px; height: 44px; border-radius: 12px; background: #fff; font-size: 28px; box-shadow: var(--shadow); display: grid; place-items: center; }
+  .sticker.on { background: var(--on); box-shadow: 0 0 0 3px var(--on-dark); }
   .hidden { display: none !important; }
 
-  #wrap { position: relative; flex: 1; min-height: 0; background: #fff; }
+  #wrap { position: relative; flex: 1; min-height: 0; background: #fff; overflow: hidden; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   #lines { pointer-events: none; }
+  #ghost { position: absolute; left: 0; top: 0; pointer-events: none; line-height: 1; transform: translate(-50%, -50%) scale(1.15); opacity: .85; filter: drop-shadow(0 6px 6px rgba(0,0,0,.25)); font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
 
-  /* gallery + coloring pages picker */
-  .overlay { position: fixed; inset: 0; background: rgba(40,30,0,.6); display: flex; flex-direction: column; z-index: 10; padding: max(16px, env(safe-area-inset-top)) 16px 16px; }
-  .overlay header { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 12px; }
-  .grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; align-content: start; touch-action: pan-y; }
-  .card { position: relative; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 0 rgba(0,0,0,.25); aspect-ratio: 4/3; }
-  .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .card .del { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; font-size: 20px; border-radius: 12px; }
-  .card.page { cursor: pointer; }
-  .card.page span { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-weight: 800; font-size: 18px; color: #333; }
-  .card.page img { padding: 6px 6px 28px; }
-  .card.blank { display: grid; place-items: center; font-size: 60px; }
-  .empty { color: #fff; font-size: 22px; text-align: center; margin-top: 40px; }
+  /* coloring pages picker */
+  #pages { position: fixed; inset: 0; z-index: 10; background: #fff7d6; display: flex; flex-direction: column; }
+  #pages header { display: flex; align-items: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 12px 10px; background: var(--bar); border-bottom: 4px solid var(--bar-dark); }
+  #pages h1 { margin: 0; font-size: 24px; }
+  .cats { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; flex: none; }
+  .cat { flex: none; display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 999px; background: #fff; font-size: 18px; font-weight: 800; box-shadow: var(--shadow); white-space: nowrap; }
+  .cat b { font-size: 26px; }
+  .cat.on { background: var(--on); box-shadow: 0 0 0 3px var(--on-dark); }
+  .grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; padding: 4px 12px max(16px, env(safe-area-inset-bottom)); align-content: start; touch-action: pan-y; }
+  .card { position: relative; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 0 rgba(0,0,0,.15); aspect-ratio: 1; cursor: pointer; }
+  .card img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 8px 8px 34px; }
+  .card span { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-weight: 800; font-size: 19px; color: #333; }
+  .card.blank { display: grid; place-items: center; font-size: 70px; padding-bottom: 24px; }
 
   #toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%,-50%) scale(.5); font-size: 90px; opacity: 0; pointer-events: none; transition: all .35s cubic-bezier(.3,1.6,.5,1); z-index: 20; }
   #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
@@ -77,71 +80,79 @@
     <button class="btn" id="redo" title="Вперед">↪️</button>
     <div class="spacer"></div>
     <button class="btn" id="openPages" title="Розмальовки">🐿️</button>
-    <button class="btn" id="save" title="Зберегти">💾</button>
-    <button class="btn" id="openGallery" title="Мої малюнки">🖼️</button>
+    <button class="btn" id="share" title="Зберегти на телефон">📤</button>
     <button class="btn" id="clear" title="Очистити">🗑️</button>
   </div>
 
-  <div id="wrap"><canvas id="c"></canvas><canvas id="lines"></canvas></div>
+  <div id="wrap">
+    <canvas id="c"></canvas>
+    <canvas id="lines"></canvas>
+    <div id="ghost" class="hidden"></div>
+  </div>
 
   <div class="bar bottom">
-    <div class="row" id="tools"></div>
-    <div class="row" id="colors"></div>
-    <div class="row hidden" id="stamps"></div>
+    <div class="tools" id="tools"></div>
+    <div class="palette" id="colors"></div>
+    <div class="palette hidden" id="stickers"></div>
   </div>
 </div>
 
-<div id="gallery" class="overlay hidden">
-  <header><button class="btn" id="closeGallery">✖️</button> Мої малюнки</header>
-  <div id="grid" class="grid"></div>
-</div>
-
-<div id="pages" class="overlay hidden">
-  <header><button class="btn" id="closePages">✖️</button> Розмальовки</header>
-  <div id="pagesGrid" class="grid"></div>
+<div id="pages" class="hidden">
+  <header><button class="btn" id="closePages">✖️</button><h1>Розмальовки</h1></header>
+  <div class="cats" id="cats"></div>
+  <div class="grid" id="pagesGrid"></div>
 </div>
 
 <div id="toast"></div>
 
-<script src="pages.js"></script>
+<script src="pages/core.js"></script>
+<script src="pages/home.js"></script>
+<script src="pages/farm.js"></script>
+<script src="pages/sea.js"></script>
+<script src="pages/savanna.js"></script>
+<script src="pages/forest.js"></script>
 <script>
 (() => {
-  const COLORS = ['#000000','#ffffff','#e53935','#ff7043','#ffb300','#fdd835','#7cb342','#2e7d32','#29b6f6','#1e63d6','#7e57c2','#ec407a','#f8bbd0','#8d6e63'];
-  const SIZES = [4, 10, 20, 36];
-  const STAMPS = ['⭐','❤️','🌸','🐱','🐶','🦄','🌈','☀️','🚗','🦋','🍎','🎈','🐟','🌳','👑','🍦'];
+  const COLORS = ['#000000','#ffffff','#e53935','#ff7043','#ffb300','#fdd835','#7cb342','#2e7d32','#29b6f6','#1e63d6','#7e57c2','#ec407a','#8d6e63'];
+  const RAINBOW = 'rainbow';
+  const SIZES = [6, 14, 28];              // brush width in CSS px
+  const STICKER_SIZES = [56, 90, 130];    // sticker size in CSS px for the same 3 steps
+  const STICKERS = ['⭐','❤️','🌸','🐱','🐶','🦄','🌈','☀️','🚗','🦋','🍎','🎈','🐟','🌳','👑','🍦'];
   const TOOLS = [
     { id: 'brush',   icon: '🖌️' },
-    { id: 'rainbow', icon: '🌈' },
-    { id: 'spray',   icon: '💨' },
     { id: 'fill',    icon: '🪣' },
-    { id: 'stamp',   icon: '⭐' },
+    { id: 'sticker', icon: '⭐' },
     { id: 'eraser',  icon: '🧽' },
   ];
   const BG = '#ffffff';
   const MAX_UNDO = 30;
-  const GALLERY_KEY = 'malyushka-gallery';
   const DRAFT_KEY = 'malyushka-draft';
+  const PAGE_KEY = 'malyushka-page';
+  const CAT_KEY = 'malyushka-cat';
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+  const { CATEGORIES, PAGES } = window.COLORING;
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const wrap = document.getElementById('wrap');
   // Coloring-page outlines live on their own layer above the paint, so brushes never cover the lines.
   const lines = document.getElementById('lines');
   const lctx = lines.getContext('2d', { willReadFrequently: true });
-  const PAGES = window.COLORING_PAGES || [];
-  const PAGE_KEY = 'malyushka-page';
+  const wrap = document.getElementById('wrap');
+  const ghost = document.getElementById('ghost');
 
-  const state = { tool: 'brush', color: COLORS[2], size: SIZES[1], stamp: STAMPS[0], hue: 0, page: null };
+  const state = { tool: 'brush', color: COLORS[2], sizeIdx: 1, sticker: STICKERS[0], hue: 0, page: null };
   let undoStack = [], redoStack = [];
   let dpr = 1;
+
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
 
   // ---------- canvas setup ----------
   function resize() {
     const rect = wrap.getBoundingClientRect();
     const newDpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.round(rect.width * newDpr), h = Math.round(rect.height * newDpr);
-    if (w === canvas.width && h === canvas.height) return;
-    // preserve existing drawing
+    if (!w || !h || (w === canvas.width && h === canvas.height)) return;
     let old = null;
     if (canvas.width && canvas.height) {
       old = document.createElement('canvas');
@@ -214,18 +225,18 @@
   }
 
   // ---------- drawing ----------
-  const pointers = new Map(); // pointerId -> {x,y,mx,my}
+  const strokes = new Map(); // pointerId -> {x,y,mx,my}
   function pos(e) {
     const r = canvas.getBoundingClientRect();
-    return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr };
+    return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr, cx: e.clientX - r.left, cy: e.clientY - r.top };
   }
   function strokeColor() {
     if (state.tool === 'eraser') return BG;
-    if (state.tool === 'rainbow') { state.hue = (state.hue + 4) % 360; return `hsl(${state.hue},90%,55%)`; }
+    if (state.color === RAINBOW) { state.hue = (state.hue + 4) % 360; return `hsl(${state.hue},90%,55%)`; }
     return state.color;
   }
   function lineWidth(e) {
-    let w = state.size * dpr * (state.tool === 'eraser' ? 2 : 1);
+    let w = SIZES[state.sizeIdx] * dpr * (state.tool === 'eraser' ? 2.2 : 1);
     if (e.pointerType === 'pen' && e.pressure > 0) w *= 0.4 + e.pressure * 1.2;
     return w;
   }
@@ -233,45 +244,47 @@
     ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(x, y, w / 2, 0, Math.PI * 2); ctx.fill();
   }
-  function spray(x, y) {
-    const radius = state.size * dpr * 1.6;
-    const n = Math.round(10 + state.size * 1.5);
-    ctx.fillStyle = state.color;
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * radius;
-      ctx.fillRect(x + Math.cos(a) * r, y + Math.sin(a) * r, dpr * 1.5, dpr * 1.5);
-    }
+
+  // stickers: a preview follows the finger, the sticker is placed where the finger lifts
+  let stickerPointer = null;
+  function showGhost(p) {
+    ghost.textContent = state.sticker;
+    ghost.style.fontSize = STICKER_SIZES[state.sizeIdx] + 'px';
+    ghost.style.left = p.cx + 'px'; ghost.style.top = p.cy + 'px';
+    ghost.classList.remove('hidden');
   }
-  function stampAt(x, y) {
-    const s = (state.size * 3 + 30) * dpr;
+  function placeSticker(p) {
+    snapshot();
+    const s = STICKER_SIZES[state.sizeIdx] * dpr;
     ctx.save();
-    ctx.font = `${s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    ctx.font = `${s}px ${EMOJI_FONT}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.translate(x, y);
-    ctx.rotate((Math.random() - .5) * 0.5);
-    ctx.fillText(state.stamp, 0, 0);
+    ctx.fillText(state.sticker, p.x, p.y);
     ctx.restore();
+    saveDraftSoon();
   }
 
   canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch {}
     const p = pos(e);
-    if (pointers.size === 0) snapshot();
-    if (state.tool === 'fill') { floodFill(Math.floor(p.x), Math.floor(p.y), state.color); pop('🎨'); saveDraftSoon(); return; }
-    if (state.tool === 'stamp') { stampAt(p.x, p.y); saveDraftSoon(); return; }
-    pointers.set(e.pointerId, { x: p.x, y: p.y, mx: p.x, my: p.y });
-    if (state.tool === 'spray') spray(p.x, p.y);
-    else dot(p.x, p.y, lineWidth(e), strokeColor());
+    if (state.tool === 'sticker') {
+      if (stickerPointer !== null) return;
+      stickerPointer = e.pointerId; showGhost(p); return;
+    }
+    if (state.tool === 'fill') { snapshot(); floodFill(Math.floor(p.x), Math.floor(p.y), fillColor()); saveDraftSoon(); return; }
+    if (strokes.size === 0) snapshot();
+    strokes.set(e.pointerId, { x: p.x, y: p.y, mx: p.x, my: p.y });
+    dot(p.x, p.y, lineWidth(e), strokeColor());
   });
 
   canvas.addEventListener('pointermove', e => {
-    const last = pointers.get(e.pointerId);
+    if (e.pointerId === stickerPointer) { showGhost(pos(e)); return; }
+    const last = strokes.get(e.pointerId);
     if (!last) return;
-    const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-    for (const ev of (events.length ? events : [e])) {
+    const events = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+    for (const ev of events) {
       const p = pos(ev);
-      if (state.tool === 'spray') { spray(p.x, p.y); last.x = p.x; last.y = p.y; continue; }
       // smooth with quadratic curves through midpoints
       const mx = (last.x + p.x) / 2, my = (last.y + p.y) / 2;
       ctx.strokeStyle = strokeColor();
@@ -285,24 +298,32 @@
     }
   });
 
-  function endStroke(e) {
-    const last = pointers.get(e.pointerId);
-    if (!last) return;
-    if (state.tool !== 'spray') {
-      ctx.strokeStyle = strokeColor(); ctx.lineWidth = lineWidth(e);
-      ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(last.mx, last.my); ctx.lineTo(last.x, last.y); ctx.stroke();
+  function endPointer(e, cancelled) {
+    if (e.pointerId === stickerPointer) {
+      stickerPointer = null; ghost.classList.add('hidden');
+      if (!cancelled) placeSticker(pos(e));
+      return;
     }
-    pointers.delete(e.pointerId);
+    const last = strokes.get(e.pointerId);
+    if (!last) return;
+    ctx.strokeStyle = strokeColor(); ctx.lineWidth = lineWidth(e); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(last.mx, last.my); ctx.lineTo(last.x, last.y); ctx.stroke();
+    strokes.delete(e.pointerId);
     saveDraftSoon();
   }
-  canvas.addEventListener('pointerup', endStroke);
-  canvas.addEventListener('pointercancel', endStroke);
+  canvas.addEventListener('pointerup', e => endPointer(e, false));
+  canvas.addEventListener('pointercancel', e => endPointer(e, true));
 
   // ---------- flood fill ----------
   function hexToRgb(hex) {
     const n = parseInt(hex.slice(1), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  let rainbowIdx = 0;
+  function fillColor() {
+    if (state.color !== RAINBOW) return state.color;
+    const bright = COLORS.slice(2, 12);
+    return bright[rainbowIdx++ % bright.length];
   }
   function floodFill(sx, sy, hex) {
     const w = canvas.width, h = canvas.height;
@@ -323,7 +344,7 @@
     const seen = new Uint8Array(w * h);
     const stack = [sx, sy];
     while (stack.length) {
-      let y = stack.pop(), x = stack.pop();
+      const y = stack.pop(); let x = stack.pop();
       let idx = y * w + x;
       while (x >= 0 && !seen[idx] && match(idx * 4)) { x--; idx--; }
       x++; idx++;
@@ -346,48 +367,48 @@
     ctx.putImageData(img, 0, 0);
   }
 
-  // ---------- UI ----------
-  const toolsRow = document.getElementById('tools');
-  const colorsRow = document.getElementById('colors');
-  const stampsRow = document.getElementById('stamps');
-
-  function el(tag, cls, html) { const n = document.createElement(tag); n.className = cls; if (html != null) n.innerHTML = html; return n; }
+  // ---------- bottom panel ----------
+  const toolsBox = document.getElementById('tools');
+  const colorsBox = document.getElementById('colors');
+  const stickersBox = document.getElementById('stickers');
 
   TOOLS.forEach(t => {
     const b = el('button', 'btn', t.icon);
     b.dataset.tool = t.id;
     b.onclick = () => { state.tool = t.id; renderUI(); };
-    toolsRow.appendChild(b);
+    toolsBox.appendChild(b);
   });
-  toolsRow.appendChild(el('div', 'spacer'));
-  SIZES.forEach(s => {
-    const b = el('button', 'size', `<i style="width:${Math.min(s, 34)}px;height:${Math.min(s, 34)}px"></i>`);
-    b.dataset.size = s;
-    b.onclick = () => { state.size = s; renderUI(); };
-    toolsRow.appendChild(b);
+  const sizeBtn = el('button', 'btn', '<i class="size-dot"></i>');
+  sizeBtn.title = 'Товщина';
+  sizeBtn.onclick = () => { state.sizeIdx = (state.sizeIdx + 1) % SIZES.length; renderUI(); };
+  toolsBox.appendChild(sizeBtn);
+
+  [...COLORS, RAINBOW].forEach(c => {
+    const b = el('button', 'color' + (c === RAINBOW ? ' rainbow' : ''));
+    if (c !== RAINBOW) b.style.background = c;
+    b.dataset.color = c;
+    b.onclick = () => { state.color = c; if (state.tool === 'eraser') state.tool = 'brush'; renderUI(); };
+    colorsBox.appendChild(b);
   });
-  COLORS.forEach(c => {
-    const b = el('button', 'color');
-    b.style.background = c; b.dataset.color = c;
-    b.onclick = () => { state.color = c; if (['eraser','rainbow','stamp'].includes(state.tool)) state.tool = 'brush'; renderUI(); };
-    colorsRow.appendChild(b);
-  });
-  STAMPS.forEach(s => {
-    const b = el('button', 'stamp', s);
-    b.dataset.stamp = s;
-    b.onclick = () => { state.stamp = s; renderUI(); };
-    stampsRow.appendChild(b);
+  STICKERS.forEach(s => {
+    const b = el('button', 'sticker', s);
+    b.dataset.sticker = s;
+    b.onclick = () => { state.sticker = s; renderUI(); };
+    stickersBox.appendChild(b);
   });
 
   function renderUI() {
-    toolsRow.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === state.tool));
-    toolsRow.querySelectorAll('[data-size]').forEach(b => b.classList.toggle('on', +b.dataset.size === state.size));
-    colorsRow.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === state.color && !['eraser','rainbow','stamp'].includes(state.tool)));
-    stampsRow.querySelectorAll('[data-stamp]').forEach(b => b.classList.toggle('on', b.dataset.stamp === state.stamp));
-    const isStamp = state.tool === 'stamp';
-    stampsRow.classList.toggle('hidden', !isStamp);
-    colorsRow.classList.toggle('hidden', isStamp);
-    toolsRow.querySelector('[data-tool="stamp"]').textContent = state.stamp;
+    toolsBox.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === state.tool));
+    toolsBox.querySelector('[data-tool="sticker"]').textContent = state.sticker;
+    const isSticker = state.tool === 'sticker';
+    stickersBox.classList.toggle('hidden', !isSticker);
+    colorsBox.classList.toggle('hidden', isSticker);
+    colorsBox.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === state.color && state.tool !== 'eraser'));
+    stickersBox.querySelectorAll('[data-sticker]').forEach(b => b.classList.toggle('on', b.dataset.sticker === state.sticker));
+    const px = [10, 18, 28][state.sizeIdx];
+    const dotEl = sizeBtn.querySelector('.size-dot');
+    dotEl.style.width = dotEl.style.height = px + 'px';
+    dotEl.style.background = state.color === RAINBOW ? 'conic-gradient(#e53935,#fdd835,#7cb342,#29b6f6,#7e57c2,#e53935)' : (state.color === '#ffffff' ? '#ccc' : state.color);
   }
 
   // toast
@@ -395,10 +416,10 @@
   let toastT;
   function pop(emoji) {
     toast.textContent = emoji; toast.classList.add('show');
-    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 600);
+    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 700);
   }
 
-  // top buttons
+  // ---------- top bar ----------
   document.getElementById('undo').onclick = undo;
   document.getElementById('redo').onclick = redo;
 
@@ -416,112 +437,74 @@
     pop('✨'); saveDraftSoon();
   };
 
-  // ---------- gallery (stored locally on device) ----------
-  function loadGallery() { try { return JSON.parse(localStorage.getItem(GALLERY_KEY)) || []; } catch { return []; } }
-  function storeGallery(list) {
-    while (list.length) {
-      try { localStorage.setItem(GALLERY_KEY, JSON.stringify(list)); return true; }
-      catch { list.pop(); } // storage full: drop oldest
-    }
-    return false;
-  }
-  function thumbnailURL(maxW, type, q, withLines) {
-    const scale = Math.min(1, maxW / canvas.width);
+  // save picture to the phone (share sheet → "Save image", or a download)
+  function compositeCanvas() {
     const t = document.createElement('canvas');
-    t.width = Math.round(canvas.width * scale); t.height = Math.round(canvas.height * scale);
+    t.width = canvas.width; t.height = canvas.height;
     const tc = t.getContext('2d');
-    tc.drawImage(canvas, 0, 0, t.width, t.height);
-    if (withLines) tc.drawImage(lines, 0, 0, t.width, t.height);
-    return t.toDataURL(type, q);
+    tc.drawImage(canvas, 0, 0);
+    tc.drawImage(lines, 0, 0);
+    return t;
   }
-  document.getElementById('save').onclick = () => {
-    const list = loadGallery();
-    list.unshift({ id: Date.now(), img: thumbnailURL(1400, 'image/jpeg', 0.85, true) });
-    storeGallery(list);
-    pop('🌟');
+  document.getElementById('share').onclick = () => {
+    compositeCanvas().toBlob(async blob => {
+      const file = new File([blob], `malyunok-${Date.now()}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); } catch {}
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      pop('🌟');
+    }, 'image/png');
   };
 
-  const gallery = document.getElementById('gallery');
-  const grid = document.getElementById('grid');
-  function renderGallery() {
-    const list = loadGallery();
-    grid.innerHTML = '';
-    if (!list.length) { grid.appendChild(el('div', 'empty', 'Тут поки порожньо 🙂<br>Натисни 💾 щоб зберегти малюнок')); return; }
-    list.forEach(item => {
-      const card = el('div', 'card');
-      const img = new Image(); img.src = item.img;
-      img.onclick = () => openDrawing(item);
-      const del = el('button', 'btn del', '🗑️');
-      let armed = false;
-      del.onclick = ev => {
-        ev.stopPropagation();
-        if (!armed) { armed = true; del.classList.add('warn'); setTimeout(() => { armed = false; del.classList.remove('warn'); }, 2000); return; }
-        storeGallery(loadGallery().filter(x => x.id !== item.id)); renderGallery();
-      };
-      const share = el('button', 'btn del', '📤');
-      share.style.right = '52px';
-      share.onclick = ev => { ev.stopPropagation(); exportImage(item.img); };
-      card.append(img, share, del);
-      grid.appendChild(card);
-    });
-  }
-  function openDrawing(item) {
-    const img = new Image();
-    img.onload = () => {
-      snapshot();
-      setPage(null); // saved pictures already include their outlines
-      ctx.fillStyle = BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const s = Math.min(canvas.width / img.width, canvas.height / img.height);
-      const w = img.width * s, h = img.height * s;
-      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
-      gallery.classList.add('hidden'); saveDraftSoon();
-    };
-    img.src = item.img;
-  }
-  async function exportImage(dataURL) {
-    const blob = await (await fetch(dataURL)).blob();
-    const file = new File([blob], `malyunok-${Date.now()}.jpg`, { type: blob.type });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file] }); return; } catch { return; }
-    }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }
-  document.getElementById('openGallery').onclick = () => { renderGallery(); gallery.classList.remove('hidden'); };
-  document.getElementById('closeGallery').onclick = () => gallery.classList.add('hidden');
-
-  // coloring pages picker
+  // ---------- coloring pages picker ----------
   const pagesBox = document.getElementById('pages');
+  const catsBox = document.getElementById('cats');
   const pagesGrid = document.getElementById('pagesGrid');
+  let currentCat = (() => { try { return localStorage.getItem(CAT_KEY); } catch { return null; } })();
+  const usedCats = CATEGORIES.filter(c => PAGES.some(p => p.cat === c.id));
+  if (!usedCats.some(c => c.id === currentCat)) currentCat = usedCats[0]?.id;
+
   function choosePage(id) {
     ctx.fillStyle = BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
     undoStack = []; redoStack = []; updateUndoButtons();
     setPage(id);
-    if (id) { state.tool = 'fill'; renderUI(); }
+    state.tool = id ? 'fill' : 'brush';
+    renderUI();
     pagesBox.classList.add('hidden');
     saveDraftSoon();
   }
-  const blank = el('div', 'card page blank', '📄<span>Чистий аркуш</span>');
-  blank.onclick = () => choosePage(null);
-  pagesGrid.appendChild(blank);
-  PAGES.forEach(p => {
-    const card = el('div', 'card page');
-    const img = new Image();
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg);
-    const label = el('span', '', p.name);
-    card.append(img, label);
-    card.onclick = () => choosePage(p.id);
-    pagesGrid.appendChild(card);
-  });
-  document.getElementById('openPages').onclick = () => pagesBox.classList.remove('hidden');
+  function renderPicker() {
+    catsBox.innerHTML = '';
+    usedCats.forEach(c => {
+      const b = el('button', 'cat' + (c.id === currentCat ? ' on' : ''), `<b>${c.icon}</b>${c.name}`);
+      b.onclick = () => { currentCat = c.id; try { localStorage.setItem(CAT_KEY, c.id); } catch {} renderPicker(); pagesGrid.scrollTop = 0; };
+      catsBox.appendChild(b);
+    });
+    pagesGrid.innerHTML = '';
+    const blank = el('div', 'card blank', '📄<span>Чистий аркуш</span>');
+    blank.onclick = () => choosePage(null);
+    pagesGrid.appendChild(blank);
+    PAGES.filter(p => p.cat === currentCat).forEach(p => {
+      const card = el('div', 'card');
+      const img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg);
+      card.append(img, el('span', '', p.name));
+      card.onclick = () => choosePage(p.id);
+      pagesGrid.appendChild(card);
+    });
+  }
+  document.getElementById('openPages').onclick = () => { renderPicker(); pagesBox.classList.remove('hidden'); };
   document.getElementById('closePages').onclick = () => pagesBox.classList.add('hidden');
 
   // ---------- autosave draft so nothing is lost on reload ----------
   let draftT;
   function saveDraftSoon() {
     clearTimeout(draftT);
-    draftT = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, thumbnailURL(1600, 'image/png')); } catch {} }, 800);
+    draftT = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, canvas.toDataURL('image/png')); } catch {} }, 800);
   }
   function restoreDraft() {
     try { const p = localStorage.getItem(PAGE_KEY); if (PAGES.some(x => x.id === p)) setPage(p); } catch {}

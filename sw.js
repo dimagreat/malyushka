@@ -1,6 +1,7 @@
 // Offline support: the app keeps working without internet after the first open.
-const CACHE = 'malyushka-v3';
-const FILES = ['./', './index.html', './pages.js', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const CACHE = 'malyushka-v4';
+const FILES = ['./', './index.html', './manifest.json',
+  './pages/core.js', './pages/home.js', './pages/farm.js', './pages/sea.js', './pages/savanna.js', './pages/forest.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
