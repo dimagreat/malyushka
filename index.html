@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Малюшка">
+<meta name="theme-color" content="#ffd84d">
+<title>Малюшка</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root {
+    --bar: #ffd84d;
+    --bar-dark: #f2b705;
+    --btn: #ffffff;
+    --shadow: 0 3px 0 rgba(0,0,0,.18);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; touch-action: none; overscroll-behavior: none; }
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+
+  .bar { background: var(--bar); display: flex; align-items: center; gap: 10px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; flex: none; }
+  .bar::-webkit-scrollbar { display: none; }
+  .top { padding-top: max(8px, env(safe-area-inset-top)); border-bottom: 4px solid var(--bar-dark); }
+  .bottom { padding-bottom: max(8px, env(safe-area-inset-bottom)); border-top: 4px solid var(--bar-dark); flex-direction: column; align-items: stretch; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px; }
+  .row::-webkit-scrollbar { display: none; }
+  .spacer { flex: 1; }
+
+  button { font: inherit; border: none; cursor: pointer; flex: none; }
+  .btn { width: 56px; height: 56px; border-radius: 16px; background: var(--btn); font-size: 30px; box-shadow: var(--shadow); display: grid; place-items: center; transition: transform .1s; }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+  .btn.on { background: #6bd36b; outline: 4px solid #2e9e2e; }
+  .btn:disabled { opacity: .4; }
+  .btn.warn { animation: wiggle .4s infinite; background: #ff7a7a; }
+  @keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+
+  .color { width: 48px; height: 48px; border-radius: 50%; box-shadow: var(--shadow), inset 0 0 0 3px rgba(0,0,0,.08); transition: transform .12s; }
+  .color.on { transform: scale(1.22); outline: 4px solid #fff; box-shadow: 0 0 0 7px #333; }
+
+  .size { width: 52px; height: 52px; border-radius: 14px; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; }
+  .size i { display: block; border-radius: 50%; background: #333; }
+  .size.on { background: #6bd36b; outline: 4px solid #2e9e2e; }
+
+  .stamp { width: 52px; height: 52px; border-radius: 14px; background: #fff; font-size: 32px; box-shadow: var(--shadow); display: grid; place-items: center; }
+  .stamp.on { background: #6bd36b; outline: 4px solid #2e9e2e; }
+  .hidden { display: none !important; }
+
+  #wrap { position: relative; flex: 1; min-height: 0; background: #fff; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+
+  /* gallery */
+  #gallery { position: fixed; inset: 0; background: rgba(40,30,0,.6); display: flex; flex-direction: column; z-index: 10; padding: max(16px, env(safe-area-inset-top)) 16px 16px; }
+  #gallery header { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+  #grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; align-content: start; touch-action: pan-y; }
+  .card { position: relative; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 0 rgba(0,0,0,.25); aspect-ratio: 4/3; }
+  .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .card .del { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; font-size: 20px; border-radius: 12px; }
+  .empty { color: #fff; font-size: 22px; text-align: center; margin-top: 40px; }
+
+  #toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%,-50%) scale(.5); font-size: 90px; opacity: 0; pointer-events: none; transition: all .35s cubic-bezier(.3,1.6,.5,1); z-index: 20; }
+  #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bar top">
+    <button class="btn" id="undo" title="Назад">↩️</button>
+    <button class="btn" id="redo" title="Вперед">↪️</button>
+    <div class="spacer"></div>
+    <button class="btn" id="save" title="Зберегти">💾</button>
+    <button class="btn" id="openGallery" title="Мої малюнки">🖼️</button>
+    <button class="btn" id="clear" title="Очистити">🗑️</button>
+  </div>
+
+  <div id="wrap"><canvas id="c"></canvas></div>
+
+  <div class="bar bottom">
+    <div class="row" id="tools"></div>
+    <div class="row" id="colors"></div>
+    <div class="row hidden" id="stamps"></div>
+  </div>
+</div>
+
+<div id="gallery" class="hidden">
+  <header><button class="btn" id="closeGallery">✖️</button> Мої малюнки</header>
+  <div id="grid"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  const COLORS = ['#000000','#ffffff','#e53935','#ff7043','#ffb300','#fdd835','#7cb342','#2e7d32','#29b6f6','#1e63d6','#7e57c2','#ec407a','#f8bbd0','#8d6e63'];
+  const SIZES = [4, 10, 20, 36];
+  const STAMPS = ['⭐','❤️','🌸','🐱','🐶','🦄','🌈','☀️','🚗','🦋','🍎','🎈','🐟','🌳','👑','🍦'];
+  const TOOLS = [
+    { id: 'brush',   icon: '🖌️' },
+    { id: 'rainbow', icon: '🌈' },
+    { id: 'spray',   icon: '💨' },
+    { id: 'fill',    icon: '🪣' },
+    { id: 'stamp',   icon: '⭐' },
+    { id: 'eraser',  icon: '🧽' },
+  ];
+  const BG = '#ffffff';
+  const MAX_UNDO = 30;
+  const GALLERY_KEY = 'malyushka-gallery';
+  const DRAFT_KEY = 'malyushka-draft';
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const wrap = document.getElementById('wrap');
+
+  const state = { tool: 'brush', color: COLORS[2], size: SIZES[1], stamp: STAMPS[0], hue: 0 };
+  let undoStack = [], redoStack = [];
+  let dpr = 1;
+
+  // ---------- canvas setup ----------
+  function resize() {
+    const rect = wrap.getBoundingClientRect();
+    const newDpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(rect.width * newDpr), h = Math.round(rect.height * newDpr);
+    if (w === canvas.width && h === canvas.height) return;
+    // preserve existing drawing
+    let old = null;
+    if (canvas.width && canvas.height) {
+      old = document.createElement('canvas');
+      old.width = canvas.width; old.height = canvas.height;
+      old.getContext('2d').drawImage(canvas, 0, 0);
+    }
+    dpr = newDpr;
+    canvas.width = w; canvas.height = h;
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, w, h);
+    if (old) ctx.drawImage(old, 0, 0);
+    undoStack = []; redoStack = []; updateUndoButtons();
+  }
+
+  // ---------- history ----------
+  function snapshot() {
+    undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    redoStack = [];
+    updateUndoButtons();
+  }
+  function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    ctx.putImageData(undoStack.pop(), 0, 0);
+    updateUndoButtons(); saveDraftSoon();
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    ctx.putImageData(redoStack.pop(), 0, 0);
+    updateUndoButtons(); saveDraftSoon();
+  }
+  function updateUndoButtons() {
+    document.getElementById('undo').disabled = !undoStack.length;
+    document.getElementById('redo').disabled = !redoStack.length;
+  }
+
+  // ---------- drawing ----------
+  const pointers = new Map(); // pointerId -> {x,y,mx,my}
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr };
+  }
+  function strokeColor() {
+    if (state.tool === 'eraser') return BG;
+    if (state.tool === 'rainbow') { state.hue = (state.hue + 4) % 360; return `hsl(${state.hue},90%,55%)`; }
+    return state.color;
+  }
+  function lineWidth(e) {
+    let w = state.size * dpr * (state.tool === 'eraser' ? 2 : 1);
+    if (e.pointerType === 'pen' && e.pressure > 0) w *= 0.4 + e.pressure * 1.2;
+    return w;
+  }
+  function dot(x, y, w, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, w / 2, 0, Math.PI * 2); ctx.fill();
+  }
+  function spray(x, y) {
+    const radius = state.size * dpr * 1.6;
+    const n = Math.round(10 + state.size * 1.5);
+    ctx.fillStyle = state.color;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * radius;
+      ctx.fillRect(x + Math.cos(a) * r, y + Math.sin(a) * r, dpr * 1.5, dpr * 1.5);
+    }
+  }
+  function stampAt(x, y) {
+    const s = (state.size * 3 + 30) * dpr;
+    ctx.save();
+    ctx.font = `${s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.translate(x, y);
+    ctx.rotate((Math.random() - .5) * 0.5);
+    ctx.fillText(state.stamp, 0, 0);
+    ctx.restore();
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    const p = pos(e);
+    if (pointers.size === 0) snapshot();
+    if (state.tool === 'fill') { floodFill(Math.floor(p.x), Math.floor(p.y), state.color); pop('🎨'); saveDraftSoon(); return; }
+    if (state.tool === 'stamp') { stampAt(p.x, p.y); saveDraftSoon(); return; }
+    pointers.set(e.pointerId, { x: p.x, y: p.y, mx: p.x, my: p.y });
+    if (state.tool === 'spray') spray(p.x, p.y);
+    else dot(p.x, p.y, lineWidth(e), strokeColor());
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    const last = pointers.get(e.pointerId);
+    if (!last) return;
+    const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (events.length ? events : [e])) {
+      const p = pos(ev);
+      if (state.tool === 'spray') { spray(p.x, p.y); last.x = p.x; last.y = p.y; continue; }
+      // smooth with quadratic curves through midpoints
+      const mx = (last.x + p.x) / 2, my = (last.y + p.y) / 2;
+      ctx.strokeStyle = strokeColor();
+      ctx.lineWidth = lineWidth(ev);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(last.mx, last.my);
+      ctx.quadraticCurveTo(last.x, last.y, mx, my);
+      ctx.stroke();
+      last.x = p.x; last.y = p.y; last.mx = mx; last.my = my;
+    }
+  });
+
+  function endStroke(e) {
+    const last = pointers.get(e.pointerId);
+    if (!last) return;
+    if (state.tool !== 'spray') {
+      ctx.strokeStyle = strokeColor(); ctx.lineWidth = lineWidth(e);
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(last.mx, last.my); ctx.lineTo(last.x, last.y); ctx.stroke();
+    }
+    pointers.delete(e.pointerId);
+    saveDraftSoon();
+  }
+  canvas.addEventListener('pointerup', endStroke);
+  canvas.addEventListener('pointercancel', endStroke);
+
+  // ---------- flood fill ----------
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function floodFill(sx, sy, hex) {
+    const w = canvas.width, h = canvas.height;
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return;
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    const [fr, fg, fb] = hexToRgb(hex);
+    const i0 = (sy * w + sx) * 4;
+    const tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2];
+    if (Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 10) return;
+    const TOL = 90; // tolerant so antialiased edges get filled too
+    const match = i => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL;
+    const seen = new Uint8Array(w * h);
+    const stack = [sx, sy];
+    while (stack.length) {
+      let y = stack.pop(), x = stack.pop();
+      let idx = y * w + x;
+      while (x >= 0 && !seen[idx] && match(idx * 4)) { x--; idx--; }
+      x++; idx++;
+      let up = false, down = false;
+      while (x < w && !seen[idx] && match(idx * 4)) {
+        seen[idx] = 1;
+        const p = idx * 4;
+        d[p] = fr; d[p + 1] = fg; d[p + 2] = fb; d[p + 3] = 255;
+        if (y > 0) {
+          const u = idx - w;
+          if (!seen[u] && match(u * 4)) { if (!up) { stack.push(x, y - 1); up = true; } } else up = false;
+        }
+        if (y < h - 1) {
+          const dn = idx + w;
+          if (!seen[dn] && match(dn * 4)) { if (!down) { stack.push(x, y + 1); down = true; } } else down = false;
+        }
+        x++; idx++;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // ---------- UI ----------
+  const toolsRow = document.getElementById('tools');
+  const colorsRow = document.getElementById('colors');
+  const stampsRow = document.getElementById('stamps');
+
+  function el(tag, cls, html) { const n = document.createElement(tag); n.className = cls; if (html != null) n.innerHTML = html; return n; }
+
+  TOOLS.forEach(t => {
+    const b = el('button', 'btn', t.icon);
+    b.dataset.tool = t.id;
+    b.onclick = () => { state.tool = t.id; renderUI(); };
+    toolsRow.appendChild(b);
+  });
+  toolsRow.appendChild(el('div', 'spacer'));
+  SIZES.forEach(s => {
+    const b = el('button', 'size', `<i style="width:${Math.min(s, 34)}px;height:${Math.min(s, 34)}px"></i>`);
+    b.dataset.size = s;
+    b.onclick = () => { state.size = s; renderUI(); };
+    toolsRow.appendChild(b);
+  });
+  COLORS.forEach(c => {
+    const b = el('button', 'color');
+    b.style.background = c; b.dataset.color = c;
+    b.onclick = () => { state.color = c; if (['eraser','rainbow','stamp'].includes(state.tool)) state.tool = 'brush'; renderUI(); };
+    colorsRow.appendChild(b);
+  });
+  STAMPS.forEach(s => {
+    const b = el('button', 'stamp', s);
+    b.dataset.stamp = s;
+    b.onclick = () => { state.stamp = s; renderUI(); };
+    stampsRow.appendChild(b);
+  });
+
+  function renderUI() {
+    toolsRow.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === state.tool));
+    toolsRow.querySelectorAll('[data-size]').forEach(b => b.classList.toggle('on', +b.dataset.size === state.size));
+    colorsRow.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === state.color && !['eraser','rainbow','stamp'].includes(state.tool)));
+    stampsRow.querySelectorAll('[data-stamp]').forEach(b => b.classList.toggle('on', b.dataset.stamp === state.stamp));
+    const isStamp = state.tool === 'stamp';
+    stampsRow.classList.toggle('hidden', !isStamp);
+    colorsRow.classList.toggle('hidden', isStamp);
+    toolsRow.querySelector('[data-tool="stamp"]').textContent = state.stamp;
+  }
+
+  // toast
+  const toast = document.getElementById('toast');
+  let toastT;
+  function pop(emoji) {
+    toast.textContent = emoji; toast.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 600);
+  }
+
+  // top buttons
+  document.getElementById('undo').onclick = undo;
+  document.getElementById('redo').onclick = redo;
+
+  const clearBtn = document.getElementById('clear');
+  let clearArmed = null;
+  clearBtn.onclick = () => {
+    if (!clearArmed) { // first tap: wiggle, second tap within 2s clears
+      clearBtn.classList.add('warn');
+      clearArmed = setTimeout(() => { clearBtn.classList.remove('warn'); clearArmed = null; }, 2000);
+      return;
+    }
+    clearTimeout(clearArmed); clearArmed = null; clearBtn.classList.remove('warn');
+    snapshot();
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    pop('✨'); saveDraftSoon();
+  };
+
+  // ---------- gallery (stored locally on device) ----------
+  function loadGallery() { try { return JSON.parse(localStorage.getItem(GALLERY_KEY)) || []; } catch { return []; } }
+  function storeGallery(list) {
+    while (list.length) {
+      try { localStorage.setItem(GALLERY_KEY, JSON.stringify(list)); return true; }
+      catch { list.pop(); } // storage full: drop oldest
+    }
+    return false;
+  }
+  function thumbnailURL(maxW, type, q) {
+    const scale = Math.min(1, maxW / canvas.width);
+    const t = document.createElement('canvas');
+    t.width = Math.round(canvas.width * scale); t.height = Math.round(canvas.height * scale);
+    t.getContext('2d').drawImage(canvas, 0, 0, t.width, t.height);
+    return t.toDataURL(type, q);
+  }
+  document.getElementById('save').onclick = () => {
+    const list = loadGallery();
+    list.unshift({ id: Date.now(), img: thumbnailURL(1400, 'image/jpeg', 0.85) });
+    storeGallery(list);
+    pop('🌟');
+  };
+
+  const gallery = document.getElementById('gallery');
+  const grid = document.getElementById('grid');
+  function renderGallery() {
+    const list = loadGallery();
+    grid.innerHTML = '';
+    if (!list.length) { grid.appendChild(el('div', 'empty', 'Тут поки порожньо 🙂<br>Натисни 💾 щоб зберегти малюнок')); return; }
+    list.forEach(item => {
+      const card = el('div', 'card');
+      const img = new Image(); img.src = item.img;
+      img.onclick = () => openDrawing(item);
+      const del = el('button', 'btn del', '🗑️');
+      let armed = false;
+      del.onclick = ev => {
+        ev.stopPropagation();
+        if (!armed) { armed = true; del.classList.add('warn'); setTimeout(() => { armed = false; del.classList.remove('warn'); }, 2000); return; }
+        storeGallery(loadGallery().filter(x => x.id !== item.id)); renderGallery();
+      };
+      const share = el('button', 'btn del', '📤');
+      share.style.right = '52px';
+      share.onclick = ev => { ev.stopPropagation(); exportImage(item.img); };
+      card.append(img, share, del);
+      grid.appendChild(card);
+    });
+  }
+  function openDrawing(item) {
+    const img = new Image();
+    img.onload = () => {
+      snapshot();
+      ctx.fillStyle = BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const s = Math.min(canvas.width / img.width, canvas.height / img.height);
+      const w = img.width * s, h = img.height * s;
+      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      gallery.classList.add('hidden'); saveDraftSoon();
+    };
+    img.src = item.img;
+  }
+  async function exportImage(dataURL) {
+    const blob = await (await fetch(dataURL)).blob();
+    const file = new File([blob], `malyunok-${Date.now()}.jpg`, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch { return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  document.getElementById('openGallery').onclick = () => { renderGallery(); gallery.classList.remove('hidden'); };
+  document.getElementById('closeGallery').onclick = () => gallery.classList.add('hidden');
+
+  // ---------- autosave draft so nothing is lost on reload ----------
+  let draftT;
+  function saveDraftSoon() {
+    clearTimeout(draftT);
+    draftT = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, thumbnailURL(1600, 'image/png')); } catch {} }, 800);
+  }
+  function restoreDraft() {
+    let url; try { url = localStorage.getItem(DRAFT_KEY); } catch {}
+    if (!url) return;
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(canvas.width / img.width, canvas.height / img.height);
+      const w = img.width * s, h = img.height * s;
+      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+    };
+    img.src = url;
+  }
+
+  // block pinch-zoom / double-tap zoom / context menu
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  new ResizeObserver(resize).observe(wrap);
+  resize();
+  restoreDraft();
+  renderUI();
+  updateUndoButtons();
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
