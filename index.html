@@ -51,14 +51,19 @@
 
   #wrap { position: relative; flex: 1; min-height: 0; background: #fff; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #lines { pointer-events: none; }
 
-  /* gallery */
-  #gallery { position: fixed; inset: 0; background: rgba(40,30,0,.6); display: flex; flex-direction: column; z-index: 10; padding: max(16px, env(safe-area-inset-top)) 16px 16px; }
-  #gallery header { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 12px; }
-  #grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; align-content: start; touch-action: pan-y; }
+  /* gallery + coloring pages picker */
+  .overlay { position: fixed; inset: 0; background: rgba(40,30,0,.6); display: flex; flex-direction: column; z-index: 10; padding: max(16px, env(safe-area-inset-top)) 16px 16px; }
+  .overlay header { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+  .grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; align-content: start; touch-action: pan-y; }
   .card { position: relative; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 0 rgba(0,0,0,.25); aspect-ratio: 4/3; }
   .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .card .del { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; font-size: 20px; border-radius: 12px; }
+  .card.page { cursor: pointer; }
+  .card.page span { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-weight: 800; font-size: 18px; color: #333; }
+  .card.page img { padding: 6px 6px 28px; }
+  .card.blank { display: grid; place-items: center; font-size: 60px; }
   .empty { color: #fff; font-size: 22px; text-align: center; margin-top: 40px; }
 
   #toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%,-50%) scale(.5); font-size: 90px; opacity: 0; pointer-events: none; transition: all .35s cubic-bezier(.3,1.6,.5,1); z-index: 20; }
@@ -71,12 +76,13 @@
     <button class="btn" id="undo" title="Назад">↩️</button>
     <button class="btn" id="redo" title="Вперед">↪️</button>
     <div class="spacer"></div>
+    <button class="btn" id="openPages" title="Розмальовки">🐿️</button>
     <button class="btn" id="save" title="Зберегти">💾</button>
     <button class="btn" id="openGallery" title="Мої малюнки">🖼️</button>
     <button class="btn" id="clear" title="Очистити">🗑️</button>
   </div>
 
-  <div id="wrap"><canvas id="c"></canvas></div>
+  <div id="wrap"><canvas id="c"></canvas><canvas id="lines"></canvas></div>
 
   <div class="bar bottom">
     <div class="row" id="tools"></div>
@@ -85,13 +91,19 @@
   </div>
 </div>
 
-<div id="gallery" class="hidden">
+<div id="gallery" class="overlay hidden">
   <header><button class="btn" id="closeGallery">✖️</button> Мої малюнки</header>
-  <div id="grid"></div>
+  <div id="grid" class="grid"></div>
+</div>
+
+<div id="pages" class="overlay hidden">
+  <header><button class="btn" id="closePages">✖️</button> Розмальовки</header>
+  <div id="pagesGrid" class="grid"></div>
 </div>
 
 <div id="toast"></div>
 
+<script src="pages.js"></script>
 <script>
 (() => {
   const COLORS = ['#000000','#ffffff','#e53935','#ff7043','#ffb300','#fdd835','#7cb342','#2e7d32','#29b6f6','#1e63d6','#7e57c2','#ec407a','#f8bbd0','#8d6e63'];
@@ -113,8 +125,13 @@
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const wrap = document.getElementById('wrap');
+  // Coloring-page outlines live on their own layer above the paint, so brushes never cover the lines.
+  const lines = document.getElementById('lines');
+  const lctx = lines.getContext('2d', { willReadFrequently: true });
+  const PAGES = window.COLORING_PAGES || [];
+  const PAGE_KEY = 'malyushka-page';
 
-  const state = { tool: 'brush', color: COLORS[2], size: SIZES[1], stamp: STAMPS[0], hue: 0 };
+  const state = { tool: 'brush', color: COLORS[2], size: SIZES[1], stamp: STAMPS[0], hue: 0, page: null };
   let undoStack = [], redoStack = [];
   let dpr = 1;
 
@@ -135,7 +152,41 @@
     canvas.width = w; canvas.height = h;
     ctx.fillStyle = BG; ctx.fillRect(0, 0, w, h);
     if (old) ctx.drawImage(old, 0, 0);
+    lines.width = w; lines.height = h;
+    renderPage();
     undoStack = []; redoStack = []; updateUndoButtons();
+  }
+
+  // ---------- coloring pages ----------
+  let pageToken = 0;
+  function renderPage() {
+    const token = ++pageToken;
+    lctx.clearRect(0, 0, lines.width, lines.height);
+    const page = PAGES.find(p => p.id === state.page);
+    if (!page) return;
+    const img = new Image();
+    img.onload = () => {
+      if (token !== pageToken) return;
+      const W = lines.width, H = lines.height;
+      const pad = Math.min(W, H) * 0.04;
+      const s = Math.min((W - pad * 2) / img.width, (H - pad * 2) / img.height);
+      const w = img.width * s, h = img.height * s;
+      lctx.fillStyle = '#fff'; lctx.fillRect(0, 0, W, H);
+      lctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      // turn white into transparent: darkness becomes alpha, so only the lines remain
+      const data = lctx.getImageData(0, 0, W, H), d = data.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const a = 255 - (d[i] + d[i + 1] + d[i + 2]) / 3;
+        d[i] = d[i + 1] = d[i + 2] = 0; d[i + 3] = a;
+      }
+      lctx.putImageData(data, 0, 0);
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(page.svg);
+  }
+  function setPage(id) {
+    state.page = id;
+    try { id ? localStorage.setItem(PAGE_KEY, id) : localStorage.removeItem(PAGE_KEY); } catch {}
+    renderPage();
   }
 
   // ---------- history ----------
@@ -263,7 +314,12 @@
     const tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2];
     if (Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 10) return;
     const TOL = 90; // tolerant so antialiased edges get filled too
-    const match = i => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL;
+    // outline pixels of a coloring page act as walls (fill goes under their soft edges)
+    const walls = state.page ? lctx.getImageData(0, 0, w, h).data : null;
+    if (walls && walls[i0 + 3] > 110) return;
+    const match = walls
+      ? i => walls[i + 3] <= 110 && Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL
+      : i => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL;
     const seen = new Uint8Array(w * h);
     const stack = [sx, sy];
     while (stack.length) {
@@ -369,16 +425,18 @@
     }
     return false;
   }
-  function thumbnailURL(maxW, type, q) {
+  function thumbnailURL(maxW, type, q, withLines) {
     const scale = Math.min(1, maxW / canvas.width);
     const t = document.createElement('canvas');
     t.width = Math.round(canvas.width * scale); t.height = Math.round(canvas.height * scale);
-    t.getContext('2d').drawImage(canvas, 0, 0, t.width, t.height);
+    const tc = t.getContext('2d');
+    tc.drawImage(canvas, 0, 0, t.width, t.height);
+    if (withLines) tc.drawImage(lines, 0, 0, t.width, t.height);
     return t.toDataURL(type, q);
   }
   document.getElementById('save').onclick = () => {
     const list = loadGallery();
-    list.unshift({ id: Date.now(), img: thumbnailURL(1400, 'image/jpeg', 0.85) });
+    list.unshift({ id: Date.now(), img: thumbnailURL(1400, 'image/jpeg', 0.85, true) });
     storeGallery(list);
     pop('🌟');
   };
@@ -411,6 +469,7 @@
     const img = new Image();
     img.onload = () => {
       snapshot();
+      setPage(null); // saved pictures already include their outlines
       ctx.fillStyle = BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
       const s = Math.min(canvas.width / img.width, canvas.height / img.height);
       const w = img.width * s, h = img.height * s;
@@ -432,6 +491,32 @@
   document.getElementById('openGallery').onclick = () => { renderGallery(); gallery.classList.remove('hidden'); };
   document.getElementById('closeGallery').onclick = () => gallery.classList.add('hidden');
 
+  // coloring pages picker
+  const pagesBox = document.getElementById('pages');
+  const pagesGrid = document.getElementById('pagesGrid');
+  function choosePage(id) {
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    undoStack = []; redoStack = []; updateUndoButtons();
+    setPage(id);
+    if (id) { state.tool = 'fill'; renderUI(); }
+    pagesBox.classList.add('hidden');
+    saveDraftSoon();
+  }
+  const blank = el('div', 'card page blank', '📄<span>Чистий аркуш</span>');
+  blank.onclick = () => choosePage(null);
+  pagesGrid.appendChild(blank);
+  PAGES.forEach(p => {
+    const card = el('div', 'card page');
+    const img = new Image();
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg);
+    const label = el('span', '', p.name);
+    card.append(img, label);
+    card.onclick = () => choosePage(p.id);
+    pagesGrid.appendChild(card);
+  });
+  document.getElementById('openPages').onclick = () => pagesBox.classList.remove('hidden');
+  document.getElementById('closePages').onclick = () => pagesBox.classList.add('hidden');
+
   // ---------- autosave draft so nothing is lost on reload ----------
   let draftT;
   function saveDraftSoon() {
@@ -439,6 +524,7 @@
     draftT = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, thumbnailURL(1600, 'image/png')); } catch {} }, 800);
   }
   function restoreDraft() {
+    try { const p = localStorage.getItem(PAGE_KEY); if (PAGES.some(x => x.id === p)) setPage(p); } catch {}
     let url; try { url = localStorage.getItem(DRAFT_KEY); } catch {}
     if (!url) return;
     const img = new Image();
