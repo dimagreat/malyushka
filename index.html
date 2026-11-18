@@ -46,6 +46,16 @@
   .color { width: 40px; height: 40px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), var(--shadow); }
   .color.on { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #333; }
   .color.rainbow { background: conic-gradient(#e53935, #fdd835, #7cb342, #29b6f6, #7e57c2, #ec407a, #e53935); }
+  .color.tex { background-size: 120px; background-position: center; }
+  .ptabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 460px; width: 100%; margin: 0 auto; }
+  .ptab { height: 38px; border-radius: 12px; background: rgba(255,255,255,.55); font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 15px; color: #6b5200; }
+  .ptab b { font-size: 22px; }
+  .ptab.on { background: #fff; color: #333; box-shadow: var(--shadow); }
+  .burst { position: absolute; pointer-events: none; font-size: 22px; animation: burst .7s ease-out forwards; }
+  @keyframes burst { from { transform: translate(-50%,-50%) scale(.4); opacity: 1; } to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1) rotate(90deg); opacity: 0; } }
+  .voice { position: absolute; left: 10px; top: 10px; width: 60px; height: 60px; border-radius: 50%; font-size: 34px; background: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.18), 0 0 0 4px var(--bar); display: grid; place-items: center; z-index: 2; }
+  .voice.play { animation: wiggle .3s 3; }
+  .sound-toggle { margin-left: auto; }
   .sticker { width: 44px; height: 44px; border-radius: 12px; background: #fff; font-size: 28px; box-shadow: var(--shadow); display: grid; place-items: center; }
   .sticker.on { background: var(--on); box-shadow: 0 0 0 3px var(--on-dark); }
   .hidden { display: none !important; }
@@ -88,23 +98,28 @@
     <canvas id="c"></canvas>
     <canvas id="lines"></canvas>
     <div id="ghost" class="hidden"></div>
+    <button class="voice hidden" id="voice" title="Голос тваринки"></button>
   </div>
 
   <div class="bar bottom">
     <div class="tools" id="tools"></div>
+    <div class="ptabs" id="ptabs"></div>
     <div class="palette" id="colors"></div>
     <div class="palette hidden" id="stickers"></div>
   </div>
 </div>
 
 <div id="pages" class="hidden">
-  <header><button class="btn" id="closePages">✖️</button><h1>Розмальовки</h1></header>
+  <header><button class="btn" id="closePages">✖️</button><h1>Розмальовки</h1><button class="btn sound-toggle" id="soundToggle" title="Звук">🔊</button></header>
   <div class="cats" id="cats"></div>
   <div class="grid" id="pagesGrid"></div>
 </div>
 
 <div id="toast"></div>
 
+<script src="paints.js"></script>
+<script src="sounds/animals.js"></script>
+<script src="sounds.js"></script>
 <script src="pages/core.js"></script>
 <script src="pages/home.js"></script>
 <script src="pages/farm.js"></script>
@@ -132,6 +147,20 @@
   const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 
   const { CATEGORIES, PAGES } = window.COLORING;
+  const PAINTS = window.PAINTS;
+  const SFX = window.SFX;
+  const PALETTE_TABS = [
+    { id: 'plain',   icon: '🎨', name: 'Фарби' },
+    { id: 'glitter', icon: '✨', name: 'Блискітки' },
+    { id: 'pearl',   icon: '🫧', name: 'Перламутр' },
+  ];
+  const ANIMAL_EMOJI = {
+    cat: '🐱', bunny: '🐰', puppy: '🐶', hamster: '🐹', parrot: '🦜',
+    cow: '🐮', pig: '🐷', chicken: '🐔', sheep: '🐑',
+    fish: '🐟', octopus: '🐙', whale: '🐳', turtle: '🐢', crab: '🦀',
+    lion: '🦁', elephant: '🐘', giraffe: '🦒', zebra: '🦓',
+    squirrel: '🐿️', bear: '🐻', owl: '🦉', hedgehog: '🦔', butterfly: '🦋',
+  };
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -141,7 +170,7 @@
   const wrap = document.getElementById('wrap');
   const ghost = document.getElementById('ghost');
 
-  const state = { tool: 'brush', color: COLORS[2], sizeIdx: 1, sticker: STICKERS[0], hue: 0, page: null };
+  const state = { tool: 'brush', color: COLORS[2], sizeIdx: 1, sticker: STICKERS[0], hue: 0, page: null, tab: 'plain' };
   let undoStack = [], redoStack = [];
   let dpr = 1;
 
@@ -198,7 +227,18 @@
     state.page = id;
     try { id ? localStorage.setItem(PAGE_KEY, id) : localStorage.removeItem(PAGE_KEY); } catch {}
     renderPage();
+    voiceBtn.textContent = ANIMAL_EMOJI[id] || '🔊';
+    voiceBtn.classList.toggle('hidden', !id);
   }
+  // round button with the animal: tap to hear it
+  const voiceBtn = document.getElementById('voice');
+  function speakAnimal() {
+    const page = PAGES.find(p => p.id === state.page);
+    if (!page) return;
+    voiceBtn.classList.remove('play'); void voiceBtn.offsetWidth; voiceBtn.classList.add('play');
+    SFX.voice(page.id, page.name);
+  }
+  voiceBtn.onclick = speakAnimal;
 
   // ---------- history ----------
   function snapshot() {
@@ -230,11 +270,29 @@
     const r = canvas.getBoundingClientRect();
     return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr, cx: e.clientX - r.left, cy: e.clientY - r.top };
   }
+  const patterns = {};
   function strokeColor() {
     if (state.tool === 'eraser') return BG;
     if (state.color === RAINBOW) { state.hue = (state.hue + 4) % 360; return `hsl(${state.hue},90%,55%)`; }
+    if (PAINTS.isSpecial(state.color)) {
+      // glitter/pearl brush: the texture is anchored to the canvas, so strokes and fills match up
+      return patterns[state.color] || (patterns[state.color] = ctx.createPattern(PAINTS.tile(state.color).canvas, 'repeat'));
+    }
     return state.color;
   }
+  // little burst of sparkles where a glitter/pearl fill landed
+  function burst(p, kind) {
+    const icons = kind === 'pearl' ? ['🫧', '✨', '🤍'] : ['✨', '⭐', '💫'];
+    for (let i = 0; i < 9; i++) {
+      const s = el('div', 'burst', icons[i % icons.length]);
+      const a = (i / 9) * Math.PI * 2 + Math.random() * .5, r = 50 + Math.random() * 40;
+      s.style.left = p.cx + 'px'; s.style.top = p.cy + 'px';
+      s.style.setProperty('--dx', Math.cos(a) * r + 'px'); s.style.setProperty('--dy', Math.sin(a) * r + 'px');
+      wrap.appendChild(s);
+      setTimeout(() => s.remove(), 750);
+    }
+  }
+  const paintKind = key => key.startsWith('g:') ? 'glitter' : key.startsWith('p:') ? 'pearl' : 'plain';
   function lineWidth(e) {
     let w = SIZES[state.sizeIdx] * dpr * (state.tool === 'eraser' ? 2.2 : 1);
     if (e.pointerType === 'pen' && e.pressure > 0) w *= 0.4 + e.pressure * 1.2;
@@ -261,6 +319,7 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(state.sticker, p.x, p.y);
     ctx.restore();
+    SFX.play('pop');
     saveDraftSoon();
   }
 
@@ -272,7 +331,17 @@
       if (stickerPointer !== null) return;
       stickerPointer = e.pointerId; showGhost(p); return;
     }
-    if (state.tool === 'fill') { snapshot(); floodFill(Math.floor(p.x), Math.floor(p.y), fillColor()); saveDraftSoon(); return; }
+    if (state.tool === 'fill') {
+      snapshot();
+      const paint = fillColor();
+      if (floodFill(Math.floor(p.x), Math.floor(p.y), paint)) {
+        const kind = paintKind(paint);
+        SFX.play(kind === 'glitter' ? 'sparkle' : kind === 'pearl' ? 'pearl' : 'plop');
+        if (kind !== 'plain') burst(p, kind);
+        saveDraftSoon();
+      } else undoStack.pop(), updateUndoButtons();
+      return;
+    }
     if (strokes.size === 0) snapshot();
     strokes.set(e.pointerId, { x: p.x, y: p.y, mx: p.x, my: p.y });
     dot(p.x, p.y, lineWidth(e), strokeColor());
@@ -325,22 +394,29 @@
     const bright = COLORS.slice(2, 12);
     return bright[rainbowIdx++ % bright.length];
   }
-  function floodFill(sx, sy, hex) {
+  // paint: a hex color or a special paint key (glitter/pearl tile). Returns true if something was filled.
+  function floodFill(sx, sy, paint) {
     const w = canvas.width, h = canvas.height;
-    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return;
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return false;
     const img = ctx.getImageData(0, 0, w, h);
     const d = img.data;
-    const [fr, fg, fb] = hexToRgb(hex);
+    const tile = PAINTS.isSpecial(paint) ? PAINTS.tile(paint).data : null;
+    const TM = PAINTS.T - 1;
+    const [fr, fg, fb] = tile ? [0, 0, 0] : hexToRgb(paint);
     const i0 = (sy * w + sx) * 4;
     const tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2];
-    if (Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 10) return;
-    const TOL = 90; // tolerant so antialiased edges get filled too
-    // outline pixels of a coloring page act as walls (fill goes under their soft edges)
-    const walls = state.page ? lctx.getImageData(0, 0, w, h).data : null;
-    if (walls && walls[i0 + 3] > 110) return;
-    const match = walls
-      ? i => walls[i + 3] <= 110 && Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL
-      : i => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL;
+    let match;
+    if (state.page) {
+      // coloring page: the outlines alone decide the area, so a sparkly area can be
+      // refilled cleanly with another color (fill also goes under the lines' soft edges)
+      const walls = lctx.getImageData(0, 0, w, h).data;
+      if (walls[i0 + 3] > 110) return false;
+      match = i => walls[i + 3] <= 110;
+    } else {
+      if (!tile && Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 10) return false;
+      const TOL = 90; // tolerant so antialiased edges get filled too
+      match = i => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= TOL;
+    }
     const seen = new Uint8Array(w * h);
     const stack = [sx, sy];
     while (stack.length) {
@@ -352,7 +428,11 @@
       while (x < w && !seen[idx] && match(idx * 4)) {
         seen[idx] = 1;
         const p = idx * 4;
-        d[p] = fr; d[p + 1] = fg; d[p + 2] = fb; d[p + 3] = 255;
+        if (tile) {
+          const t = (((y & TM) << 8) | (x & TM)) * 4; // tile is 256 wide
+          d[p] = tile[t]; d[p + 1] = tile[t + 1]; d[p + 2] = tile[t + 2];
+        } else { d[p] = fr; d[p + 1] = fg; d[p + 2] = fb; }
+        d[p + 3] = 255;
         if (y > 0) {
           const u = idx - w;
           if (!seen[u] && match(u * 4)) { if (!up) { stack.push(x, y - 1); up = true; } } else up = false;
@@ -365,6 +445,7 @@
       }
     }
     ctx.putImageData(img, 0, 0);
+    return true;
   }
 
   // ---------- bottom panel ----------
@@ -383,13 +464,33 @@
   sizeBtn.onclick = () => { state.sizeIdx = (state.sizeIdx + 1) % SIZES.length; renderUI(); };
   toolsBox.appendChild(sizeBtn);
 
-  [...COLORS, RAINBOW].forEach(c => {
-    const b = el('button', 'color' + (c === RAINBOW ? ' rainbow' : ''));
-    if (c !== RAINBOW) b.style.background = c;
-    b.dataset.color = c;
-    b.onclick = () => { state.color = c; if (state.tool === 'eraser') state.tool = 'brush'; renderUI(); };
-    colorsBox.appendChild(b);
+  // palette tabs: plain paints / glitter / pearl
+  const ptabsBox = document.getElementById('ptabs');
+  PALETTE_TABS.forEach(t => {
+    const b = el('button', 'ptab', `<b>${t.icon}</b>${t.name}`);
+    b.dataset.tab = t.id;
+    b.onclick = () => { state.tab = t.id; SFX.play('tap'); renderSwatches(); renderUI(); };
+    ptabsBox.appendChild(b);
   });
+  function renderSwatches() {
+    colorsBox.innerHTML = '';
+    const keys = state.tab === 'glitter' ? PAINTS.GLITTER : state.tab === 'pearl' ? PAINTS.PEARL : [...COLORS, RAINBOW];
+    keys.forEach(c => {
+      const special = PAINTS.isSpecial(c);
+      const b = el('button', 'color' + (c === RAINBOW ? ' rainbow' : '') + (special ? ' tex' : ''));
+      if (special) b.style.backgroundImage = `url(${PAINTS.swatchURL(c)})`;
+      else if (c !== RAINBOW) b.style.background = c;
+      b.dataset.color = c;
+      b.onclick = () => {
+        state.color = c;
+        if (state.tool === 'eraser') state.tool = 'brush';
+        if (special) SFX.play(paintKind(c) === 'pearl' ? 'pearl' : 'sparkle'); else SFX.play('tap');
+        renderUI();
+      };
+      colorsBox.appendChild(b);
+    });
+  }
+  renderSwatches();
   STICKERS.forEach(s => {
     const b = el('button', 'sticker', s);
     b.dataset.sticker = s;
@@ -403,12 +504,16 @@
     const isSticker = state.tool === 'sticker';
     stickersBox.classList.toggle('hidden', !isSticker);
     colorsBox.classList.toggle('hidden', isSticker);
+    ptabsBox.classList.toggle('hidden', isSticker);
+    ptabsBox.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
     colorsBox.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === state.color && state.tool !== 'eraser'));
     stickersBox.querySelectorAll('[data-sticker]').forEach(b => b.classList.toggle('on', b.dataset.sticker === state.sticker));
     const px = [10, 18, 28][state.sizeIdx];
     const dotEl = sizeBtn.querySelector('.size-dot');
     dotEl.style.width = dotEl.style.height = px + 'px';
-    dotEl.style.background = state.color === RAINBOW ? 'conic-gradient(#e53935,#fdd835,#7cb342,#29b6f6,#7e57c2,#e53935)' : (state.color === '#ffffff' ? '#ccc' : state.color);
+    dotEl.style.background = state.color === RAINBOW ? 'conic-gradient(#e53935,#fdd835,#7cb342,#29b6f6,#7e57c2,#e53935)'
+      : PAINTS.isSpecial(state.color) ? `center / 60px url(${PAINTS.swatchURL(state.color)})`
+      : (state.color === '#ffffff' ? '#ccc' : state.color);
   }
 
   // toast
@@ -476,7 +581,12 @@
     renderUI();
     pagesBox.classList.add('hidden');
     saveDraftSoon();
+    if (id) speakAnimal();
   }
+  const soundBtn = document.getElementById('soundToggle');
+  const renderSound = () => { soundBtn.textContent = SFX.muted ? '🔇' : '🔊'; };
+  soundBtn.onclick = () => { SFX.setMuted(!SFX.muted); renderSound(); SFX.play('tap'); };
+  renderSound();
   function renderPicker() {
     catsBox.innerHTML = '';
     usedCats.forEach(c => {
