@@ -1,5 +1,5 @@
 // Offline support: the app keeps working without internet after the first open.
-const CACHE = 'malyushka-v5';
+const CACHE = 'malyushka-v6';
 const FILES = ['./', './index.html', './manifest.json',
   './paints.js', './sounds.js', './sounds/animals.js', './pages/core.js', './pages/home.js', './pages/farm.js', './pages/sea.js', './pages/savanna.js', './pages/forest.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 

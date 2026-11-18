@@ -199,6 +199,23 @@
 
   // ---------- coloring pages ----------
   let pageToken = 0;
+  // bounding box of the dark lines in the page image (cached per page)
+  const boxes = {};
+  function drawingBox(id, img) {
+    if (boxes[id]) return boxes[id];
+    const W = img.width, H = img.height;
+    const t = document.createElement('canvas'); t.width = W; t.height = H;
+    const g = t.getContext('2d', { willReadFrequently: true });
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, W, H).data;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (d[i] + d[i + 1] + d[i + 2] < 600) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return { x: 0, y: 0, w: W, h: H };
+    return (boxes[id] = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 });
+  }
   function renderPage() {
     const token = ++pageToken;
     lctx.clearRect(0, 0, lines.width, lines.height);
@@ -208,11 +225,13 @@
     img.onload = () => {
       if (token !== pageToken) return;
       const W = lines.width, H = lines.height;
-      const pad = Math.min(W, H) * 0.04;
-      const s = Math.min((W - pad * 2) / img.width, (H - pad * 2) / img.height);
-      const w = img.width * s, h = img.height * s;
+      // crop to the drawing itself so it fills as much of the paper as possible
+      const b = drawingBox(page.id, img);
+      const pad = Math.min(W, H) * 0.03;
+      const s = Math.min((W - pad * 2) / b.w, (H - pad * 2) / b.h);
+      const w = b.w * s, h = b.h * s;
       lctx.fillStyle = '#fff'; lctx.fillRect(0, 0, W, H);
-      lctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      lctx.drawImage(img, b.x, b.y, b.w, b.h, (W - w) / 2, (H - h) / 2, w, h);
       // turn white into transparent: darkness becomes alpha, so only the lines remain
       const data = lctx.getImageData(0, 0, W, H), d = data.data;
       for (let i = 0; i < d.length; i += 4) {
