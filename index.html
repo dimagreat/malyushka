@@ -255,7 +255,7 @@
     const page = PAGES.find(p => p.id === state.page);
     if (!page) return;
     voiceBtn.classList.remove('play'); void voiceBtn.offsetWidth; voiceBtn.classList.add('play');
-    SFX.voice(page.id, page.name);
+    SFX.voice(page.id);
   }
   voiceBtn.onclick = speakAnimal;
 

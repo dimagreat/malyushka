@@ -1,7 +1,7 @@
 // Offline support: the app keeps working without internet after the first open.
-const CACHE = 'malyushka-v6';
+const CACHE = 'malyushka-v7';
 const FILES = ['./', './index.html', './manifest.json',
-  './paints.js', './sounds.js', './sounds/animals.js', './pages/core.js', './pages/home.js', './pages/farm.js', './pages/sea.js', './pages/savanna.js', './pages/forest.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+  './paints.js', './sounds.js', './sounds/animals.js', './sounds/cat.m4a', './sounds/puppy.m4a', './sounds/bunny.m4a', './sounds/hamster.m4a', './sounds/parrot.m4a', './sounds/cow.m4a', './sounds/pig.m4a', './sounds/chicken.m4a', './sounds/sheep.m4a', './sounds/whale.m4a', './sounds/lion.m4a', './sounds/elephant.m4a', './sounds/zebra.m4a', './sounds/owl.m4a', './sounds/bear.m4a', './sounds/squirrel.m4a',  './pages/core.js', './pages/home.js', './pages/farm.js', './pages/sea.js', './pages/savanna.js', './pages/forest.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

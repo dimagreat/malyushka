@@ -41,7 +41,21 @@
     sparkle() { for (let i = 0; i < 6; i++) tone(PENTA[(Math.random() * PENTA.length) | 0], i * .055, .35, { vol: .09 }); },
     pearl()   { tone(784, 0, .5, { vol: .1 }); tone(988, .08, .5, { vol: .08 }); tone(1319, .16, .6, { vol: .06 }); },
     tap()     { tone(660, 0, .07, { type: 'triangle', vol: .12 }); },
+    // for animals that don't really have a voice
+    bubbles() { for (let i = 0; i < 7; i++) { const f = 300 + Math.random() * 500; tone(f, i * .09 + Math.random() * .04, .12, { to: f * 2.4, vol: .2 }); } },
+    flutter() { for (let i = 0; i < 10; i++) tone(i % 2 ? 1800 : 1500, i * .06, .05, { type: 'triangle', vol: .07 }); },
+    boing()   { tone(140, 0, .5, { type: 'sine', to: 420, vol: .3 }); tone(420, .45, .35, { type: 'sine', to: 160, vol: .2 }); },
+    sniff()   { for (let i = 0; i < 4; i++) noise(i * .16, .1, 2500); },
   };
+  function noise(start, dur, freq) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + start, len = Math.ceil(a.sampleRate * dur);
+    const buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / len);
+    const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; g.gain.value = .5;
+    src.connect(f).connect(g).connect(a.destination); src.start(t);
+  }
 
   // Animal voices: id -> { src, start, end } (seconds). Filled in by sounds/animals.js when present.
   const ANIMALS = window.ANIMAL_SOUNDS || {};
@@ -72,20 +86,12 @@
     } catch { return false; }
   }
 
-  // animals without a recorded voice just say their name (Ukrainian voice if the phone has one)
-  function say(text) {
-    if (muted || !('speechSynthesis' in window)) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'uk-UA'; u.rate = .9; u.pitch = 1.3;
-    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith('uk'));
-    if (v) u.voice = v;
-    speechSynthesis.cancel(); speechSynthesis.speak(u);
-  }
-
+  const play = name => { if (!muted && EFFECTS[name]) try { EFFECTS[name](); } catch {} };
   window.SFX = {
-    play(name) { if (!muted && EFFECTS[name]) try { EFFECTS[name](); } catch {} },
-    async voice(id, name) { if (!(await animal(id))) say(name); },
+    play,
+    // real recording if we have one, otherwise a playful effect (never a robot voice)
+    async voice(id) { if (!(await animal(id))) play((window.ANIMAL_EFFECTS || {})[id] || 'pop'); },
     get muted() { return muted; },
-    setMuted(v) { muted = v; try { localStorage.setItem(KEY, v ? 'off' : 'on'); } catch {} if (v && 'speechSynthesis' in window) speechSynthesis.cancel(); },
+    setMuted(v) { muted = v; try { localStorage.setItem(KEY, v ? 'off' : 'on'); } catch {} if (v && current) try { current.stop(); } catch {} },
   };
 })();
