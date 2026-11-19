@@ -207,7 +207,17 @@
   const wrap = document.getElementById('wrap');
   const ghost = document.getElementById('ghost');
 
-  const state = { tool: 'brush', color: COLORS[2], sizeIdx: 1, sticker: STICKERS[0], stamp: 0, hue: 0, page: null, tab: 'plain', paper: 0 };
+  const state = { tool: 'brush', sizeIdx: 1, sticker: STICKERS[0], stamp: 0, hue: 0, page: null, paper: 0 };
+  // each paint tool remembers its own paint; eraser and stickers keep the last paint tool's one
+  const paints = {
+    brush: { color: COLORS[2], tab: 'plain' },
+    fill:  { color: COLORS[4], tab: 'plain' },
+    stamp: { color: RAINBOW,   tab: 'plain' },
+  };
+  let paintTool = 'brush';
+  const curPaint = () => paints[paints[state.tool] ? (paintTool = state.tool) : paintTool];
+  Object.defineProperty(state, 'color', { get: () => curPaint().color, set: v => { curPaint().color = v; } });
+  Object.defineProperty(state, 'tab', { get: () => curPaint().tab, set: v => { curPaint().tab = v; } });
   try { const p = +localStorage.getItem(PAPER_KEY); if (PAPERS[p]) state.paper = p; } catch {}
   const paper = () => PAPERS[state.paper];
   let undoStack = [], redoStack = [];
@@ -221,18 +231,45 @@
     const newDpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.round(rect.width * newDpr), h = Math.round(rect.height * newDpr);
     if (!w || !h || (w === canvas.width && h === canvas.height)) return;
-    let old = null;
-    if (canvas.width && canvas.height) {
-      old = document.createElement('canvas');
+    // keep the paint (unless an earlier copy is still waiting to be placed)
+    if (!pendingPaint && canvas.width && canvas.height) {
+      const old = document.createElement('canvas');
       old.width = canvas.width; old.height = canvas.height;
       old.getContext('2d').drawImage(canvas, 0, 0);
+      pendingPaint = old;
     }
     dpr = newDpr;
     canvas.width = w; canvas.height = h; // paint layer is transparent: the paper is the #wrap background
-    if (old) ctx.drawImage(old, 0, 0);
     lines.width = w; lines.height = h;
     renderPage();
+    placePaint();
     undoStack = []; redoStack = []; updateUndoButtons();
+  }
+
+  // Paint from another canvas size (window resized, phone rotated, draft from another screen)
+  // must move together with the outlines, so it is mapped from the old drawing area to the new one.
+  let pendingPaint = null;
+  function pageRect(b, W, H) {
+    const pad = Math.min(W, H) * 0.03;
+    const s = Math.min((W - pad * 2) / b.w, (H - pad * 2) / b.h);
+    return { x: (W - b.w * s) / 2, y: (H - b.h * s) / 2, w: b.w * s, h: b.h * s };
+  }
+  function placePaint() {
+    const src = pendingPaint;
+    if (!src) return;
+    const W0 = src.width, H0 = src.height, W = canvas.width, H = canvas.height;
+    let s, x, y;
+    if (state.page) {
+      const b = boxes[state.page];
+      if (!b) return; // the page is still loading: renderPage places it when ready
+      const r0 = pageRect(b, W0, H0), r1 = pageRect(b, W, H);
+      s = r1.w / r0.w; x = r1.x - r0.x * s; y = r1.y - r0.y * s;
+    } else {
+      s = Math.min(W / W0, H / H0); x = (W - W0 * s) / 2; y = (H - H0 * s) / 2;
+    }
+    pendingPaint = null;
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(src, x, y, W0 * s, H0 * s);
   }
 
   // ---------- coloring pages ----------
@@ -265,11 +302,10 @@
       const W = lines.width, H = lines.height;
       // crop to the drawing itself so it fills as much of the paper as possible
       const b = drawingBox(page.id, img);
-      const pad = Math.min(W, H) * 0.03;
-      const s = Math.min((W - pad * 2) / b.w, (H - pad * 2) / b.h);
-      const w = b.w * s, h = b.h * s;
+      const r = pageRect(b, W, H);
       lctx.fillStyle = '#fff'; lctx.fillRect(0, 0, W, H);
-      lctx.drawImage(img, b.x, b.y, b.w, b.h, (W - w) / 2, (H - h) / 2, w, h);
+      lctx.drawImage(img, b.x, b.y, b.w, b.h, r.x, r.y, r.w, r.h);
+      placePaint();
       // turn white into transparent: darkness becomes alpha, so only the lines remain
       // (white lines on dark paper)
       const data = lctx.getImageData(0, 0, W, H), d = data.data;
@@ -347,7 +383,7 @@
 
   function setPage(id) {
     state.page = id;
-    regions = null; celebrated = false;
+    regions = null; celebrated = false; pendingPaint = null;
     try { id ? localStorage.setItem(PAGE_KEY, id) : localStorage.removeItem(PAGE_KEY); } catch {}
     renderPage();
     voiceBtn.textContent = ANIMAL_EMOJI[id] || '🔊';
@@ -723,8 +759,8 @@
       else if (c !== RAINBOW) b.style.background = c;
       b.dataset.color = c;
       b.onclick = () => {
+        if (state.tool === 'eraser') state.tool = paintTool;
         state.color = c;
-        if (state.tool === 'eraser') state.tool = 'brush';
         SFX.play({ glitter: 'sparkle', pearl: 'pearl', neon: 'zap' }[paintKind(c)] || 'tap');
         renderUI();
       };
@@ -739,7 +775,9 @@
     stickersBox.appendChild(b);
   });
 
+  let shownTab = null;
   function renderUI() {
+    if (shownTab !== state.tab) { shownTab = state.tab; renderSwatches(); } // switching tools may switch the paint tab
     toolsBox.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === state.tool));
     toolsBox.querySelector('[data-tool="sticker"]').textContent = state.sticker;
     toolsBox.querySelector('[data-tool="stamp"]').textContent = STAMPS[state.stamp].icon;
@@ -795,7 +833,7 @@
     clearTimeout(clearArmed); clearArmed = null; clearBtn.classList.remove('warn');
     snapshot();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    celebrated = false;
+    celebrated = false; pendingPaint = null;
     pop('✨'); saveDraftSoon();
   };
 
@@ -882,17 +920,21 @@
     if (!url) return;
     const img = new Image();
     img.onload = () => {
-      const s = Math.min(canvas.width / img.width, canvas.height / img.height);
-      const w = img.width * s, h = img.height * s;
-      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      const t = document.createElement('canvas');
+      t.width = img.width; t.height = img.height;
+      const g = t.getContext('2d', { willReadFrequently: true });
+      g.drawImage(img, 0, 0);
       // drafts from older versions were saved on solid white: make that white see-through
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height), d = data.data;
+      const data = g.getImageData(0, 0, t.width, t.height), d = data.data;
       let opaque = true;
       for (let i = 3; i < d.length; i += 4 * 97) if (d[i] < 255) { opaque = false; break; }
       if (opaque) {
         for (let i = 0; i < d.length; i += 4) if (d[i] > 250 && d[i + 1] > 250 && d[i + 2] > 250) d[i + 3] = 0;
-        ctx.putImageData(data, 0, 0);
+        g.putImageData(data, 0, 0);
       }
+      // the draft was saved at its screen size: line it up with the outlines here
+      pendingPaint = t;
+      placePaint();
     };
     img.src = url;
   }
