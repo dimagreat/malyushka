@@ -148,6 +148,20 @@
     },
   };
 
+  // app minimized / screen locked / another tab: go quiet, come back when the app is open again
+  function onVisibility() {
+    if (document.hidden) {
+      music.stop(); draw.end();
+      if (current) { try { current.stop(); } catch {} current = null; }
+      if (ac && ac.state === 'running') ac.suspend();
+    } else if (ac) {
+      ac.resume(); // if the phone refuses without a touch, the next touch resumes it
+      if (mode === 'music') music.start();
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibility);
+  addEventListener('pagehide', () => { if (ac) { music.stop(); ac.suspend(); } });
+
   // ---------- animal voices: id -> { src, start, end } (filled in by sounds/animals.js) ----------
   const ANIMALS = window.ANIMAL_SOUNDS || {};
   const buffers = {};
