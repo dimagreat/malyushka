@@ -57,6 +57,8 @@
   .ptab b { font-size: 22px; }
   .ptab.on { background: #fff; color: #333; box-shadow: var(--shadow); }
   @media (max-width: 480px) { .ptab span { display: none; } .ptab b { font-size: 24px; } }
+  .shapes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-width: 460px; width: 100%; margin: 0 auto; }
+  .shapes .ptab { font-size: 24px; }
   .tools .btn.cycle { animation: pulse .25s; }
   @keyframes pulse { 50% { transform: scale(1.18); } }
   /* coloring page finished: the picture jumps and confetti falls */
@@ -117,6 +119,7 @@
 
   <div class="bar bottom">
     <div class="tools" id="tools"></div>
+    <div class="shapes hidden" id="shapes"></div>
     <div class="ptabs" id="ptabs"></div>
     <div class="palette" id="colors"></div>
     <div class="palette hidden" id="stickers"></div>
@@ -340,7 +343,7 @@
       }
       sizes.push(n); border.push(edge);
     }
-    const min = gw * gh * 0.0015;
+    const min = gw * gh * 0.0004; // small details (lights, handles) count too
     regions = { labels, gw, gh, W, sizes, big: sizes.map((n, i) => i > 0 && !border[i] && n >= min) };
   }
   function pageDone() {
@@ -354,7 +357,8 @@
     }
     let total = 0, done = 0;
     big.forEach((b, i) => { if (b) { total++; if (painted[i] >= sizes[i] * .6) done++; } });
-    return total > 0 && done >= total * .85;
+    // every area must be colored; only very busy pictures forgive one or two missed bits
+    return total > 0 && done >= total - Math.floor(total / 15);
   }
   let doneT;
   function checkDone() {
@@ -768,6 +772,14 @@
     });
   }
   renderSwatches();
+  // stamp shapes: shown while the stamp tool is on
+  const shapesBox = document.getElementById('shapes');
+  STAMPS.forEach((s, i) => {
+    const b = el('button', 'ptab', s.icon);
+    b.dataset.shape = i;
+    b.onclick = () => { state.stamp = i; SFX.play('boop'); renderUI(); };
+    shapesBox.appendChild(b);
+  });
   STICKERS.forEach(s => {
     const b = el('button', 'sticker', s);
     b.dataset.sticker = s;
@@ -783,6 +795,8 @@
     toolsBox.querySelector('[data-tool="stamp"]').textContent = STAMPS[state.stamp].icon;
     const isSticker = state.tool === 'sticker';
     stickersBox.classList.toggle('hidden', !isSticker);
+    shapesBox.classList.toggle('hidden', state.tool !== 'stamp');
+    shapesBox.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('on', +b.dataset.shape === state.stamp));
     colorsBox.classList.toggle('hidden', isSticker);
     ptabsBox.classList.toggle('hidden', isSticker);
     ptabsBox.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
