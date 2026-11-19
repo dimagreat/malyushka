@@ -522,7 +522,6 @@
     }
     ctx.restore();
     brushDone();
-    SFX.play('boop');
   }
   let lastStamp = null;
 
@@ -567,7 +566,7 @@
     }
     if (strokes.size === 0) snapshot();
     strokes.set(e.pointerId, { x: p.x, y: p.y, mx: p.x, my: p.y, cx: p.cx, cy: p.cy });
-    SFX.draw.start(state.tool === 'eraser' ? 'eraser' : paintKind(state.color));
+    if (state.tool !== 'stamp') SFX.draw.start(state.tool === 'eraser' ? 'eraser' : paintKind(state.color));
     if (state.tool === 'stamp') { stampAt(p); lastStamp = p; return; }
     dot(p.x, p.y, lineWidth(e), strokeColor());
   });
@@ -577,7 +576,7 @@
     const last = strokes.get(e.pointerId);
     if (!last) return;
     const pe = pos(e);
-    SFX.draw.move(Math.hypot(pe.cx - last.cx, pe.cy - last.cy));
+    if (state.tool !== 'stamp') SFX.draw.move(Math.hypot(pe.cx - last.cx, pe.cy - last.cy));
     last.cx = pe.cx; last.cy = pe.cy;
     if (state.tool === 'stamp') {
       const gap = STAMP_R[state.sizeIdx] * dpr * 2.3;
@@ -735,7 +734,6 @@
       if (t.id === 'stamp' && state.tool === 'stamp') {
         state.stamp = (state.stamp + 1) % STAMPS.length;
         b.classList.remove('cycle'); void b.offsetWidth; b.classList.add('cycle');
-        SFX.play('boop');
       }
       state.tool = t.id; renderUI();
     };
@@ -779,7 +777,7 @@
   STAMPS.forEach((s, i) => {
     const b = el('button', 'ptab', s.icon);
     b.dataset.shape = i;
-    b.onclick = () => { state.stamp = i; SFX.play('boop'); renderUI(); };
+    b.onclick = () => { state.stamp = i; renderUI(); };
     shapesBox.appendChild(b);
   });
   STICKERS.forEach(s => {
