@@ -391,13 +391,15 @@
     try { id ? localStorage.setItem(PAGE_KEY, id) : localStorage.removeItem(PAGE_KEY); } catch {}
     renderPage();
     voiceBtn.textContent = ANIMAL_EMOJI[id] || '🔊';
-    voiceBtn.classList.toggle('hidden', !id);
+    voiceBtn.classList.toggle('hidden', !id || !ANIMAL_VOICES);
   }
   // round button with the animal: tap to hear it
+  // Animal voices are switched off for now (the recordings weren't nice); flip to true to bring them back.
+  const ANIMAL_VOICES = false;
   const voiceBtn = document.getElementById('voice');
   function speakAnimal() {
     const page = PAGES.find(p => p.id === state.page);
-    if (!page) return;
+    if (!page || !ANIMAL_VOICES) return;
     voiceBtn.classList.remove('play'); void voiceBtn.offsetWidth; voiceBtn.classList.add('play');
     SFX.voice(page.id);
   }
@@ -540,7 +542,7 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(state.sticker, p.x, p.y);
     ctx.restore();
-    if (STICKER_VOICE[state.sticker]) SFX.voice(STICKER_VOICE[state.sticker]); else SFX.play('pop');
+    if (ANIMAL_VOICES && STICKER_VOICE[state.sticker]) SFX.voice(STICKER_VOICE[state.sticker]); else SFX.play('pop');
     saveDraftSoon();
   }
 
