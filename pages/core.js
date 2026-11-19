@@ -14,6 +14,10 @@
     { id: 'sea',     name: 'Морські', icon: '🐠' },
     { id: 'savanna', name: 'Саванна', icon: '🦁' },
     { id: 'forest',  name: 'Ліс',     icon: '🌲' },
+    { id: 'dino',    name: 'Динозаври', icon: '🦖' },
+    { id: 'transport', name: 'Транспорт', icon: '🚗' },
+    { id: 'fairy',   name: 'Казка',   icon: '🦄' },
+    { id: 'holiday', name: 'Свята',   icon: '🎄' },
   ];
   const PAGES = [];
   function add(cat, list) {

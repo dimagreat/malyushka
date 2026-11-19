@@ -5,4 +5,8 @@ window.ANIMAL_SOUNDS = Object.fromEntries(
     .map(id => [id, { src: 'sounds/' + id + '.m4a' }]));
 // Animals that don't really make a sound get a playful effect instead
 window.ANIMAL_EFFECTS = { fish: 'bubbles', octopus: 'bubbles', turtle: 'bubbles', crab: 'bubbles',
-  butterfly: 'flutter', giraffe: 'boing', hedgehog: 'sniff' };
+  butterfly: 'flutter', giraffe: 'boing', hedgehog: 'sniff',
+  trex: 'roar', brachio: 'roar', triceratops: 'roar', stego: 'roar', babydino: 'boing',
+  car: 'honk', firetruck: 'siren', train: 'choo', plane: 'whoosh', ship: 'horn',
+  dragon: 'roar', tree: 'jingle', snowman: 'jingle', gift: 'jingle', cake: 'fanfare', balloons: 'pop' };
+// everything else (unicorn, castle, fairy...) plays the 'magic' effect
