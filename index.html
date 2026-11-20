@@ -38,7 +38,6 @@
   /* tools: always fit the width, never scroll */
   .top .btn { width: 46px; height: 46px; font-size: 25px; }
   @media (max-width: 400px) { .top { gap: 6px; } .top .btn { width: 43px; height: 43px; font-size: 23px; } }
-  .paper-sw { display: block; width: 26px; height: 26px; border-radius: 7px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.25); }
   .tools { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
   .tools .btn { width: 100%; height: 56px; font-size: 30px; }
   .tools .btn.on { background: var(--on); box-shadow: 0 0 0 3px var(--on-dark), var(--shadow); }
@@ -50,13 +49,18 @@
   .color.on { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #333; }
   .color.rainbow { background: conic-gradient(#e53935, #fdd835, #7cb342, #29b6f6, #7e57c2, #ec407a, #e53935); }
   .color.tex { background-size: 120px; background-position: center; }
-  .color.neon { box-shadow: 0 0 10px 2px var(--c), inset 0 0 0 4px rgba(255,255,255,.6), inset 0 0 8px 4px #fff; }
-  .color.neon.on { box-shadow: 0 0 10px 2px var(--c), 0 0 0 3px #fff, 0 0 0 6px #333, inset 0 0 8px 4px #fff; }
-  .ptabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 460px; width: 100%; margin: 0 auto; }
+  .ptabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 460px; width: 100%; margin: 0 auto; }
   .ptab { height: 38px; border-radius: 12px; background: rgba(255,255,255,.55); font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 15px; color: #6b5200; }
   .ptab b { font-size: 22px; }
   .ptab.on { background: #fff; color: #333; box-shadow: var(--shadow); }
-  @media (max-width: 480px) { .ptab span { display: none; } .ptab b { font-size: 24px; } }
+  /* paint tabs look like the paint itself, so a child sees where the sparkly ones are */
+  #ptabs .ptab { height: 46px; border-radius: 14px; color: #fff; background-size: cover; background-position: center;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.15), var(--shadow); transition: transform .12s; }
+  #ptabs .ptab b { filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+  #ptabs .ptab span { text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  #ptabs .ptab[data-tab="plain"] { background: linear-gradient(100deg, #e53935 0 20%, #fdd835 20% 40%, #7cb342 40% 60%, #29b6f6 60% 80%, #7e57c2 80%); }
+  #ptabs .ptab.on { transform: scale(1.08); box-shadow: 0 0 0 3px #fff, 0 0 0 6px #333, var(--shadow); }
+  @media (max-width: 480px) { .ptab span { display: none; } .ptab b { font-size: 24px; } #ptabs .ptab b { font-size: 28px; } }
   .shapes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-width: 460px; width: 100%; margin: 0 auto; }
   .shapes .ptab { font-size: 24px; }
   .tools .btn.cycle { animation: pulse .25s; }
@@ -91,7 +95,7 @@
   .card { position: relative; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 0 rgba(0,0,0,.15); aspect-ratio: 1; cursor: pointer; }
   .card img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 8px 8px 34px; }
   .card span { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-weight: 800; font-size: 19px; color: #333; }
-  .card.blank { display: grid; place-items: center; font-size: 70px; padding-bottom: 24px; }
+  .card.blank { display: grid; place-items: center; font-size: 60px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), 0 4px 0 rgba(0,0,0,.15); }
 
   #toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%,-50%) scale(.5); font-size: 90px; opacity: 0; pointer-events: none; transition: all .35s cubic-bezier(.3,1.6,.5,1); z-index: 20; }
   #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
@@ -103,7 +107,6 @@
     <button class="btn" id="undo" title="Назад">↩️</button>
     <button class="btn" id="redo" title="Вперед">↪️</button>
     <div class="spacer"></div>
-    <button class="btn" id="paper" title="Колір аркуша"><i class="paper-sw"></i></button>
     <button class="btn" id="soundToggle" title="Звук">🔊</button>
     <button class="btn" id="openPages" title="Розмальовки">🐿️</button>
     <button class="btn" id="share" title="Зберегти на телефон">📤</button>
@@ -174,7 +177,6 @@
     { id: 'plain',   icon: '🎨', name: 'Фарби' },
     { id: 'glitter', icon: '✨', name: 'Блискітки' },
     { id: 'pearl',   icon: '🫧', name: 'Перламутр' },
-    { id: 'neon',    icon: '🌟', name: 'Неон' },
   ];
   const ANIMAL_EMOJI = {
     cat: '🐱', bunny: '🐰', puppy: '🐶', hamster: '🐹', parrot: '🦜',
@@ -187,17 +189,17 @@
     unicorn: '🦄', dragon: '🐉', castle: '🏰', mermaid: '🧜‍♀️', fairy: '🧚',
     tree: '🎄', cake: '🎂', snowman: '⛄', gift: '🎁', balloons: '🎈',
   };
-  const NEON = ['#ff2bd6', '#ff3b5c', '#ff9a1f', '#fff23a', '#7dff3a', '#21ffb5', '#22e6ff', '#3a7bff', '#b14bff', '#ffffff'].map(c => 'n:' + c);
-  // stamp brush shapes, drawn in the current paint (so glitter stars, neon hearts...)
+  // stamp brush shapes, drawn in the current paint (so glitter stars, pearl hearts...)
   const STAMPS = [
     { id: 'heart', icon: '❤️' }, { id: 'star', icon: '⭐' }, { id: 'flower', icon: '🌸' },
     { id: 'paw', icon: '🐾' }, { id: 'dot', icon: '🔵' }, { id: 'bubble', icon: '🫧' },
   ];
-  // paper colors; dark paper gets white outlines on coloring pages
+  // paper colors for a blank sheet (coloring pages are always on white)
   const PAPERS = [
-    { c: '#ffffff' }, { c: '#15142b', dark: true }, { c: '#cdeeff' }, { c: '#ffe0ee' }, { c: '#fff1bd' }, { c: '#d8f6cf' },
+    { c: '#ffffff' }, { c: '#ffe0ee' }, { c: '#e9dcff' }, { c: '#cdeeff' }, { c: '#d8f6cf' }, { c: '#fff1bd' },
+    { c: '#ffd9c2' }, { c: '#15142b', dark: true },
   ];
-  const PAPER_KEY = 'malyushka-paper';
+  const PAPER_KEY = 'malyushka-paper2'; // new list of colors, so the old setting is not reused
   // stickers that make a sound when placed: sticker -> page id of the voice
   const STICKER_VOICE = { '🐱': 'cat', '🐶': 'puppy', '🐮': 'cow', '🐷': 'pig', '🐔': 'chicken', '🐑': 'sheep',
     '🦁': 'lion', '🐘': 'elephant', '🐻': 'bear', '🦉': 'owl', '🐳': 'whale', '🐟': 'fish', '🦋': 'butterfly', '🦄': 'unicorn' };
@@ -436,20 +438,15 @@
     return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr, cx: e.clientX - r.left, cy: e.clientY - r.top };
   }
   const patterns = {};
-  const isNeon = k => typeof k === 'string' && k.startsWith('n:');
-  const neonHex = k => k.slice(2);
-  function lighten(hex, t) { const c = hexToRgb(hex); return `rgb(${c.map(v => Math.round(v + (255 - v) * t))})`; }
-  // set up ctx for painting: eraser cuts through to the paper, neon glows
+  // set up ctx for painting: eraser cuts through to the paper
   function brushMode() {
     ctx.globalCompositeOperation = state.tool === 'eraser' ? 'destination-out' : 'source-over';
-    if (state.tool !== 'eraser' && isNeon(state.color)) { ctx.shadowColor = neonHex(state.color); ctx.shadowBlur = 14 * dpr; }
-    else ctx.shadowBlur = 0;
+    ctx.shadowBlur = 0;
   }
   function brushDone() { ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0; }
   function strokeColor() {
     if (state.tool === 'eraser') return '#000';
     if (state.color === RAINBOW) { state.hue = (state.hue + 4) % 360; return `hsl(${state.hue},90%,55%)`; }
-    if (isNeon(state.color)) return lighten(neonHex(state.color), .45); // bright core, the glow gives the color
     if (PAINTS.isSpecial(state.color)) {
       // glitter/pearl brush: the texture is anchored to the canvas, so strokes and fills match up
       return patterns[state.color] || (patterns[state.color] = ctx.createPattern(PAINTS.tile(state.color).canvas, 'repeat'));
@@ -468,7 +465,7 @@
       setTimeout(() => s.remove(), 750);
     }
   }
-  const paintKind = key => key.startsWith('g:') ? 'glitter' : key.startsWith('p:') ? 'pearl' : key.startsWith('n:') ? 'neon' : 'plain';
+  const paintKind = key => key.startsWith('g:') ? 'glitter' : key.startsWith('p:') ? 'pearl' : 'plain';
   function lineWidth(e) {
     let w = SIZES[state.sizeIdx] * dpr * (state.tool === 'eraser' ? 2.2 : 1);
     if (e.pointerType === 'pen' && e.pressure > 0) w *= 0.4 + e.pressure * 1.2;
@@ -559,7 +556,7 @@
       const paint = fillColor();
       if (floodFill(Math.floor(p.x), Math.floor(p.y), paint)) {
         const kind = paintKind(paint);
-        SFX.play({ glitter: 'sparkle', pearl: 'pearl', neon: 'zap' }[kind] || 'plop');
+        SFX.play({ glitter: 'sparkle', pearl: 'pearl' }[kind] || 'plop');
         if (kind !== 'plain') burst(p, kind);
         saveDraftSoon(); checkDone();
       } else undoStack.pop(), updateUndoButtons();
@@ -634,16 +631,15 @@
     const bright = COLORS.slice(2, 12);
     return bright[rainbowIdx++ % bright.length];
   }
-  // paint: a hex color, a glitter/pearl tile key or a neon key. Returns true if something was filled.
+  // paint: a hex color or a glitter/pearl tile key. Returns true if something was filled.
   function floodFill(sx, sy, paint) {
     const w = canvas.width, h = canvas.height;
     if (sx < 0 || sy < 0 || sx >= w || sy >= h) return false;
     const img = ctx.getImageData(0, 0, w, h);
     const d = img.data;
     const tile = PAINTS.isSpecial(paint) ? PAINTS.tile(paint).data : null;
-    const neon = isNeon(paint);
     const TM = PAINTS.T - 1;
-    const [fr, fg, fb] = tile ? [0, 0, 0] : hexToRgb(neon ? neonHex(paint) : paint);
+    const [fr, fg, fb] = tile ? [0, 0, 0] : hexToRgb(paint);
     const i0 = (sy * w + sx) * 4;
     const tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2], ta = d[i0 + 3];
     let match;
@@ -654,7 +650,7 @@
       if (walls[i0 + 3] > 110) return false;
       match = i => walls[i + 3] <= 110;
     } else {
-      if (!tile && !neon && ta === 255 && Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 10) return false;
+      if (!tile && ta === 255 && Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 10) return false;
       const TOL = 90; // tolerant so antialiased edges get filled too
       match = i => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) + Math.abs(d[i + 3] - ta) <= TOL;
     }
@@ -684,8 +680,6 @@
       }
       if (x - 1 > x1) x1 = x - 1;
     }
-    // neon: bright glowing middle fading to the full color at the edges
-    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, R = Math.max(x1 - x0, y1 - y0) / 2 + 1;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const idx = y * w + x;
       if (!seen[idx]) continue;
@@ -693,33 +687,11 @@
       if (tile) {
         const t = (((y & TM) << 8) | (x & TM)) * 4; // tile is 256 wide
         d[p] = tile[t]; d[p + 1] = tile[t + 1]; d[p + 2] = tile[t + 2];
-      } else if (neon) {
-        const k = Math.max(0, 1 - Math.hypot(x - cx, y - cy) / R) ** 1.5 * .8;
-        d[p] = fr + (255 - fr) * k; d[p + 1] = fg + (255 - fg) * k; d[p + 2] = fb + (255 - fb) * k;
       } else { d[p] = fr; d[p + 1] = fg; d[p + 2] = fb; }
       d[p + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
-    if (neon) neonHalo(seen, x0, y0, x1, y1, neonHex(paint));
     return true;
-  }
-  // soft colored glow around a neon area, only on the paper around it (not over other paint)
-  function neonHalo(seen, x0, y0, x1, y1, color) {
-    const w = canvas.width, bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-    const m = document.createElement('canvas'); m.width = bw; m.height = bh;
-    const mc = m.getContext('2d'), mi = mc.createImageData(bw, bh), [r, g, b] = hexToRgb(color);
-    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
-      if (!seen[(y + y0) * w + x + x0]) continue;
-      const p = (y * bw + x) * 4; mi.data[p] = r; mi.data[p + 1] = g; mi.data[p + 2] = b; mi.data[p + 3] = 255;
-    }
-    mc.putImageData(mi, 0, 0);
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-over';
-    ctx.shadowColor = color; ctx.shadowBlur = 22 * dpr;
-    ctx.shadowOffsetX = canvas.width; // draw the shape off-screen, only its glow lands here
-    ctx.drawImage(m, x0 - canvas.width, y0);
-    ctx.drawImage(m, x0 - canvas.width, y0);
-    ctx.restore();
   }
 
   // ---------- bottom panel ----------
@@ -751,23 +723,24 @@
   PALETTE_TABS.forEach(t => {
     const b = el('button', 'ptab', `<b>${t.icon}</b><span>${t.name}</span>`);
     b.dataset.tab = t.id;
+    const sample = { glitter: 'g:rainbow', pearl: 'p:rainbow' }[t.id];
+    if (sample) b.style.backgroundImage = `url(${PAINTS.swatchURL(sample)})`;
     b.onclick = () => { state.tab = t.id; SFX.play('tap'); renderSwatches(); renderUI(); };
     ptabsBox.appendChild(b);
   });
   function renderSwatches() {
     colorsBox.innerHTML = '';
-    const keys = { glitter: PAINTS.GLITTER, pearl: PAINTS.PEARL, neon: NEON }[state.tab] || [...COLORS, RAINBOW];
+    const keys = { glitter: PAINTS.GLITTER, pearl: PAINTS.PEARL }[state.tab] || [...COLORS, RAINBOW];
     keys.forEach(c => {
-      const special = PAINTS.isSpecial(c), neon = isNeon(c);
-      const b = el('button', 'color' + (c === RAINBOW ? ' rainbow' : '') + (special ? ' tex' : '') + (neon ? ' neon' : ''));
+      const special = PAINTS.isSpecial(c);
+      const b = el('button', 'color' + (c === RAINBOW ? ' rainbow' : '') + (special ? ' tex' : ''));
       if (special) b.style.backgroundImage = `url(${PAINTS.swatchURL(c)})`;
-      else if (neon) { b.style.background = neonHex(c); b.style.setProperty('--c', neonHex(c)); }
       else if (c !== RAINBOW) b.style.background = c;
       b.dataset.color = c;
       b.onclick = () => {
         if (state.tool === 'eraser') state.tool = paintTool;
         state.color = c;
-        SFX.play({ glitter: 'sparkle', pearl: 'pearl', neon: 'zap' }[paintKind(c)] || 'tap');
+        SFX.play({ glitter: 'sparkle', pearl: 'pearl' }[paintKind(c)] || 'tap');
         renderUI();
       };
       colorsBox.appendChild(b);
@@ -809,22 +782,9 @@
     dotEl.style.width = dotEl.style.height = px + 'px';
     dotEl.style.background = state.color === RAINBOW ? 'conic-gradient(#e53935,#fdd835,#7cb342,#29b6f6,#7e57c2,#e53935)'
       : PAINTS.isSpecial(state.color) ? `center / 60px url(${PAINTS.swatchURL(state.color)})`
-      : isNeon(state.color) ? neonHex(state.color)
       : (state.color === '#ffffff' ? '#ccc' : state.color);
-    dotEl.style.boxShadow = isNeon(state.color) ? `0 0 8px 2px ${neonHex(state.color)}` : '';
-    // paper
     wrap.style.background = paper().c;
-    paperBtn.querySelector('.paper-sw').style.background = paper().c;
   }
-  const paperBtn = document.getElementById('paper');
-  paperBtn.onclick = () => {
-    const wasDark = paper().dark;
-    state.paper = (state.paper + 1) % PAPERS.length;
-    try { localStorage.setItem(PAPER_KEY, state.paper); } catch {}
-    SFX.play('paper');
-    if (!!paper().dark !== !!wasDark) renderPage(); // outlines switch between black and white
-    renderUI();
-  };
 
   // toast
   const toast = document.getElementById('toast');
@@ -882,12 +842,18 @@
   const catsBox = document.getElementById('cats');
   const pagesGrid = document.getElementById('pagesGrid');
   let currentCat = (() => { try { return localStorage.getItem(CAT_KEY); } catch { return null; } })();
-  const usedCats = CATEGORIES.filter(c => PAGES.some(p => p.cat === c.id));
-  if (!usedCats.some(c => c.id === currentCat)) currentCat = usedCats[0]?.id;
+  // first category: a blank sheet in a color of your choice
+  const usedCats = [{ id: 'blank', name: 'Чистий аркуш', icon: '📄' }, ...CATEGORIES.filter(c => PAGES.some(p => p.cat === c.id))];
+  if (!usedCats.some(c => c.id === currentCat)) currentCat = usedCats[1]?.id;
 
-  function choosePage(id) {
+  function setPaper(i) {
+    state.paper = i;
+    try { localStorage.setItem(PAPER_KEY, i); } catch {}
+  }
+  function choosePage(id, paperIdx = 0) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     undoStack = []; redoStack = []; updateUndoButtons();
+    setPaper(id ? 0 : paperIdx); // coloring pages are always on white
     setPage(id);
     state.tool = id ? 'fill' : 'brush';
     renderUI();
@@ -909,9 +875,15 @@
       catsBox.appendChild(b);
     });
     pagesGrid.innerHTML = '';
-    const blank = el('div', 'card blank', '📄<span>Чистий аркуш</span>');
-    blank.onclick = () => choosePage(null);
-    pagesGrid.appendChild(blank);
+    if (currentCat === 'blank') {
+      PAPERS.forEach((p, i) => {
+        const card = el('div', 'card blank', '✏️');
+        card.style.background = p.c;
+        card.onclick = () => choosePage(null, i);
+        pagesGrid.appendChild(card);
+      });
+      return;
+    }
     PAGES.filter(p => p.cat === currentCat).forEach(p => {
       const card = el('div', 'card');
       const img = new Image();
@@ -931,7 +903,7 @@
     draftT = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, canvas.toDataURL('image/png')); } catch {} }, 800);
   }
   function restoreDraft() {
-    try { const p = localStorage.getItem(PAGE_KEY); if (PAGES.some(x => x.id === p)) setPage(p); } catch {}
+    try { const p = localStorage.getItem(PAGE_KEY); if (PAGES.some(x => x.id === p)) { state.paper = 0; setPage(p); } } catch {}
     let url; try { url = localStorage.getItem(DRAFT_KEY); } catch {}
     if (!url) return;
     const img = new Image();
