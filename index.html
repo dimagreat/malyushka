@@ -721,12 +721,18 @@
     b.dataset.tab = t.id;
     const sample = { glitter: 'g:rainbow', pearl: 'p:rainbow' }[t.id];
     if (sample) b.style.backgroundImage = `url(${PAINTS.swatchURL(sample)})`;
-    b.onclick = () => { state.tab = t.id; SFX.play('tap'); renderSwatches(); renderUI(); };
+    b.onclick = () => {
+      if (state.tool === 'eraser') state.tool = paintTool; // back to painting
+      // a new kind of paint starts with its first color, so the old one doesn't keep painting
+      if (state.tab !== t.id) { state.tab = t.id; state.color = tabKeys(t.id)[0]; }
+      SFX.play('tap'); renderSwatches(); renderUI();
+    };
     ptabsBox.appendChild(b);
   });
+  const tabKeys = tab => ({ glitter: PAINTS.GLITTER, pearl: PAINTS.PEARL }[tab] || [...COLORS, RAINBOW]);
   function renderSwatches() {
     colorsBox.innerHTML = '';
-    const keys = { glitter: PAINTS.GLITTER, pearl: PAINTS.PEARL }[state.tab] || [...COLORS, RAINBOW];
+    const keys = tabKeys(state.tab);
     keys.forEach(c => {
       const special = PAINTS.isSpecial(c);
       const b = el('button', 'color' + (c === RAINBOW ? ' rainbow' : '') + (special ? ' tex' : ''));
