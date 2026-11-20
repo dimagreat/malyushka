@@ -104,13 +104,10 @@
 <body>
 <div id="app">
   <div class="bar top">
-    <button class="btn" id="undo" title="Назад">↩️</button>
-    <button class="btn" id="redo" title="Вперед">↪️</button>
+    <button class="btn" id="clear" title="Очистити">🗑️</button>
     <div class="spacer"></div>
     <button class="btn" id="soundToggle" title="Звук">🔊</button>
     <button class="btn" id="openPages" title="Розмальовки">🐿️</button>
-    <button class="btn" id="share" title="Зберегти на телефон">📤</button>
-    <button class="btn" id="clear" title="Очистити">🗑️</button>
   </div>
 
   <div id="wrap">
@@ -427,8 +424,7 @@
     updateUndoButtons(); saveDraftSoon();
   }
   function updateUndoButtons() {
-    document.getElementById('undo').disabled = !undoStack.length;
-    document.getElementById('redo').disabled = !redoStack.length;
+    // no undo/redo buttons for now (too fiddly for a small child); history is still kept
   }
 
   // ---------- drawing ----------
@@ -795,8 +791,6 @@
   }
 
   // ---------- top bar ----------
-  document.getElementById('undo').onclick = undo;
-  document.getElementById('redo').onclick = redo;
 
   const clearBtn = document.getElementById('clear');
   let clearArmed = null;
@@ -813,29 +807,6 @@
     pop('✨'); saveDraftSoon();
   };
 
-  // save picture to the phone (share sheet → "Save image", or a download)
-  function compositeCanvas() {
-    const t = document.createElement('canvas');
-    t.width = canvas.width; t.height = canvas.height;
-    const tc = t.getContext('2d');
-    tc.fillStyle = paper().c; tc.fillRect(0, 0, t.width, t.height);
-    tc.drawImage(canvas, 0, 0);
-    tc.drawImage(lines, 0, 0);
-    return t;
-  }
-  document.getElementById('share').onclick = () => {
-    compositeCanvas().toBlob(async blob => {
-      const file = new File([blob], `malyunok-${Date.now()}.png`, { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file] }); } catch {}
-        return;
-      }
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      pop('🌟');
-    }, 'image/png');
-  };
 
   // ---------- coloring pages picker ----------
   const pagesBox = document.getElementById('pages');
